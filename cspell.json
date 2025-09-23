@@ -1,0 +1,33 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "sentencizer",
+    "ndarray",
+    "sents",
+    "punct",
+    "spacy",
+    "cognitiveservices",
+    "speechsdk",
+    "XiaoxiaoNeural",
+    "XiaoyiNeural",
+    "YunjianNeural",
+    "YunxiNeural",
+    "YunxiaNeural",
+    "YunyangNeural",
+    "epub",
+    "epub2speech",
+    "soundfile",
+    "ssml"
+  ],
+  "flagWords": [],
+  "ignorePaths": [
+    "node_modules",
+    "*.log",
+    "*.wav",
+    "*.mp3",
+    "dist/**",
+    "temp/**",
+    "__pycache__/**"
+  ]
+}

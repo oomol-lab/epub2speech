@@ -215,6 +215,7 @@ tests/tts_config.json
 
 # Test output files
 tests/dist/
+tests/temp/
 
 # Test Audio Files
 *.wav
