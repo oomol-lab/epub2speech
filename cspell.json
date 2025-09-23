@@ -18,7 +18,12 @@
     "epub",
     "epub2speech",
     "soundfile",
-    "ssml"
+    "ssml",
+    "ffprobe",
+    "FFMETADATA",
+    "TIMEBASE",
+    "noprint",
+    "nokey"
   ],
   "flagWords": [],
   "ignorePaths": [
