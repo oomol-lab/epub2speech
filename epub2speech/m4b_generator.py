@@ -64,7 +64,7 @@ class M4BGenerator:
             proc = subprocess.run(args, capture_output=True, text=True, check=True)
             return float(proc.stdout.strip())
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to probe duration for {file_path}: {e.stderr}")
+            raise RuntimeError(f"Failed to probe duration for {file_path}: {e.stderr}") from e
 
     def create_chapter_metadata(self, chapters: List[ChapterInfo], output_dir: Path) -> Path:
         """
@@ -138,7 +138,7 @@ class M4BGenerator:
         try:
             subprocess.run(concat_cmd, check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to concatenate audio files: {e.stderr}")
+            raise RuntimeError(f"Failed to concatenate audio files: {e.stderr}") from e
         finally:
             # 清理临时文件列表
             file_list_path.unlink(missing_ok=True)
@@ -226,7 +226,7 @@ class M4BGenerator:
         try:
             subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"FFmpeg failed to create M4B: {e.stderr}")
+            raise RuntimeError(f"FFmpeg failed to create M4B: {e.stderr}") from e
 
         finally:
             # 清理临时文件
