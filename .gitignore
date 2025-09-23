@@ -207,3 +207,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# TTS Configuration Files
+tests/tts_config.json
+*.config.json
+!tests/tts_config.json.template
+
+# Test output files
+tests/dist/
+
+# Test Audio Files
+*.wav
+*.mp3
+*.m4a
+
+# Temporary Files
+temp/
+tmp/
