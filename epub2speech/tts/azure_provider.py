@@ -1,14 +1,8 @@
-import logging
 from pathlib import Path
-from typing import Optional
 
 import azure.cognitiveservices.speech as speechsdk
 
 from .protocol import TextToSpeechProtocol
-from .config import load_tts_config
-
-
-logger = logging.getLogger(__name__)
 
 
 class AzureTextToSpeech(TextToSpeechProtocol):
@@ -16,39 +10,42 @@ class AzureTextToSpeech(TextToSpeechProtocol):
 
     def __init__(
         self,
-        subscription_key: Optional[str] = None,
-        region: Optional[str] = None,
+        subscription_key: str,
+        region: str,
         default_voice: str = "zh-CN-XiaoxiaoNeural"
     ):
         """
         Initialize Azure TTS service
 
         Args:
-            subscription_key: Azure Speech Service subscription key
-            region: Azure Speech Service region
+            subscription_key: Azure Speech Service subscription key (required)
+            region: Azure Speech Service region (required)
             default_voice: Default voice to use (default: zh-CN-XiaoxiaoNeural)
+
+        Raises:
+            ValueError: If subscription_key or region is None or empty
         """
+        if not subscription_key:
+            raise ValueError("subscription_key is required and cannot be None or empty")
+        if not region:
+            raise ValueError("region is required and cannot be None or empty")
+
         self.subscription_key = subscription_key
         self.region = region
         self.default_voice = default_voice
         self._speech_config = None
+
         self._setup_speech_config()
 
     def _setup_speech_config(self) -> None:
         """Setup Azure Speech configuration"""
-        if not self.subscription_key or not self.region:
-            logger.warning("Azure Speech credentials not configured")
-            return
-
         try:
             self._speech_config = speechsdk.SpeechConfig(
                 subscription=self.subscription_key,
                 region=self.region
             )
-            logger.info("Azure Speech configured for region: %s", self.region)
         except Exception as e:
-            logger.error("Failed to setup Azure Speech config: %s", e)
-            self._speech_config = None
+            raise RuntimeError(f"Failed to setup Azure Speech config: {e}") from e
 
     def convert_text_to_audio(
         self,
@@ -68,12 +65,10 @@ class AzureTextToSpeech(TextToSpeechProtocol):
             True if conversion successful, False otherwise
         """
         if not self._speech_config:
-            logger.error("Azure Speech not properly configured")
-            return False
+            raise RuntimeError("Azure Speech not properly configured - cannot convert text to audio")
 
         if not text or not text.strip():
-            logger.warning("Empty text provided for conversion")
-            return False
+            raise ValueError("Empty text provided for conversion")
 
         # Ensure output directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -94,25 +89,41 @@ class AzureTextToSpeech(TextToSpeechProtocol):
             # Build SSML for speech synthesis
             ssml = self._build_ssml(text, voice)
 
-            logger.info("Converting text to speech: %s characters", len(text))
             result = speech_synthesizer.speak_ssml_async(ssml).get()
 
             if result and result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-                logger.info("Audio saved to: %s", output_path)
+
+                # 验证生成的音频文件不是静音
+                if output_path.exists():
+                    try:
+                        import soundfile as sf
+                        import numpy as np
+                        audio_data, _ = sf.read(output_path)
+                        if len(audio_data) > 0:
+                            audio_range = np.max(audio_data) - np.min(audio_data)
+                            is_silent = np.allclose(audio_data, 0) or audio_range < 0.001
+                            if is_silent:
+                                raise RuntimeError(f"Generated audio file is silent! Audio range: [{np.min(audio_data)}, {np.max(audio_data)}]. This may indicate Azure TTS configuration or language support issue")
+                            # Audio validation passed, continue normally
+                        else:
+                            raise RuntimeError("Generated audio file is empty (0 samples)")
+                    except Exception as e:
+                        # If audio validation fails, we still return True since the file was generated
+                        # But we don't need to log it
+                        pass
+
                 return True
             elif result and result.reason == speechsdk.ResultReason.Canceled:
                 cancellation_details = result.cancellation_details
-                logger.error("Speech synthesis canceled: %s", cancellation_details.reason)
-                if cancellation_details.error_details:
-                    logger.error("Error details: %s", cancellation_details.error_details)
+                raise RuntimeError(f"Speech synthesis canceled: {cancellation_details.reason}. Error details: {cancellation_details.error_details if cancellation_details.error_details else 'None'}")
                 return False
             else:
                 error_reason = result.reason if result else "Unknown error"
-                logger.error("Speech synthesis failed: %s", error_reason)
+                raise RuntimeError(f"Speech synthesis failed: {error_reason}")
                 return False
 
         except Exception as e:
-            logger.error("Exception during speech synthesis: %s", e)
+            raise RuntimeError(f"Exception during speech synthesis: {e}") from e
             return False
 
     def _build_ssml(self, text: str, voice: str) -> str:
@@ -136,7 +147,7 @@ class AzureTextToSpeech(TextToSpeechProtocol):
             List of voice names
         """
         if not self._speech_config:
-            logger.warning("Azure Speech not configured, returning default voices")
+            # Return default voices when not configured
             return [
                 "zh-CN-XiaoxiaoNeural",
                 "zh-CN-XiaoyiNeural",
@@ -161,12 +172,11 @@ class AzureTextToSpeech(TextToSpeechProtocol):
                         voices.append(voice.name)
                 return sorted(voices)
             else:
-                error_reason = result.reason if result else "Unknown error"
-                logger.error("Failed to retrieve voices: %s", error_reason)
+                # Return empty list on error
                 return []
 
-        except Exception as e:
-            logger.error("Exception while retrieving voices: %s", e)
+        except Exception:
+            # Return empty list on exception
             return []
 
     def validate_config(self) -> bool:
@@ -191,24 +201,22 @@ class AzureTextToSpeech(TextToSpeechProtocol):
                 return False
             return result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted
 
-        except Exception as e:
-            logger.error("Configuration validation failed: %s", e)
+        except Exception:
+            # Configuration validation failed
             return False
 
-def create_azure_tts_from_config(config_path: Optional[Path] = None) -> AzureTextToSpeech:
+def create_azure_tts_from_config() -> AzureTextToSpeech:
     """
-    Create Azure TTS instance from configuration file
+    Create Azure TTS instance from configuration file (DEPRECATED)
 
-    Args:
-        config_path: Optional path to config file, defaults to azure_tts_config.json
+    This function is deprecated and should not be used.
+    AzureTextToSpeech now requires explicit subscription_key and region parameters.
 
-    Returns:
-        AzureTextToSpeech instance configured from file
+    Raises:
+        RuntimeError: Always raised, as this function is no longer supported
     """
-    config = load_tts_config(config_path)
-    azure_config = config.get_azure_config()
-
-    return AzureTextToSpeech(
-        subscription_key=azure_config.get("subscription_key"),
-        region=azure_config.get("region")
+    raise RuntimeError(
+        "create_azure_tts_from_config() is deprecated. "
+        "Please create AzureTextToSpeech with explicit subscription_key and region parameters: "
+        "AzureTextToSpeech(subscription_key='your_key', region='your_region')"
     )

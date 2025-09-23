@@ -16,7 +16,7 @@ class TTSConfig:
         Args:
             config_path: Optional path to configuration JSON file
         """
-        self.config_path = config_path or Path("tests/tts_config.json")
+        self.config_path = config_path or Path(__file__).parent.parent / "tts_config.json"
         self._config: Dict[str, Any] = {}
         self.load_config()
 

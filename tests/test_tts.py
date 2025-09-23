@@ -6,8 +6,8 @@ from pathlib import Path
 # Add project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
-from epub2speech.tts import create_azure_tts_from_config
-from epub2speech.tts.config import TTSConfig
+from epub2speech.tts.azure_provider import AzureTextToSpeech
+from tests.utils.config import TTSConfig
 
 
 def test_tts_integration():
@@ -33,8 +33,18 @@ def test_tts_integration():
 
     print("✅ TTS configuration validated")
 
-    # Create TTS instance
-    tts = create_azure_tts_from_config(config_path)
+    # Create TTS instance from config
+    config = TTSConfig(config_path)
+    azure_config = config.get_azure_config()
+    if not azure_config:
+        print("❌ No Azure configuration found in config file")
+        return False
+
+    tts = AzureTextToSpeech(
+        subscription_key=azure_config.get("subscription_key"),
+        region=azure_config.get("region")
+    )
+
     if not tts.validate_config():
         print("❌ Azure TTS validation failed")
         return False
