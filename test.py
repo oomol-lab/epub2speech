@@ -12,13 +12,17 @@ def run_tests():
     print("🧪 Starting EPUB functionality tests...\n")
 
     try:
-        # Import test module
-        from tests.test_picker import test_picker_functionality
+        # Import test modules
+        from tests.test_epub_picker import test_picker_functionality
+        from tests.test_extractor import test_extractor_functionality
 
-        print("📋 Running tests/test_picker.py...")
-
-        # Execute tests
+        print("📋 Running tests/test_epub_picker.py...")
+        # Execute EPUB picker tests
         test_picker_functionality()
+
+        print("\n📋 Running tests/test_extractor.py...")
+        # Execute text extractor tests
+        test_extractor_functionality()
 
         print("\n🎉 All tests passed!")
         return 0

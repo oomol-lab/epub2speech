@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 from os import PathLike
 from typing import Any, Generator, Literal
 from ebooklib import epub, ITEM_COVER, ITEM_IMAGE, ITEM_NAVIGATION
+from .extractor import extract_text_from_html
 
 
 class EpubPicker:
@@ -81,6 +82,32 @@ class EpubPicker:
         else:
             # 没有找到导航文件，基于文件结构生成虚拟导航
             yield from self._generate_virtual_navigation()
+
+    def extract_text(self, href: str) -> str:
+        """Extract plain text content from a chapter/document identified by href"""
+        # Remove anchor if present (e.g., "chapter1.xhtml#section1" -> "chapter1.xhtml")
+        base_href = href.split('#')[0] if '#' in href else href
+
+        # Use get_item_with_href for direct lookup (much more efficient than iteration)
+        doc_item = self._book.get_item_with_href(base_href)
+
+        if doc_item is None:
+            # Fallback: try with original href in case of edge cases
+            doc_item = self._book.get_item_with_href(href)
+
+        if doc_item is None:
+            return ""
+
+        # Get content from the document
+        content = doc_item.get_content()
+        if content is None:
+            return ""
+
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="ignore")
+
+        # Extract text using the unified function (handles both HTML parsing and regex fallback)
+        return extract_text_from_html(content)
 
     def _parse_epub2_ncx(self, content: str) -> Generator[tuple[str, str], None, None]:
         root = ET.fromstring(content)

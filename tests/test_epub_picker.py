@@ -3,12 +3,10 @@ import sys
 import os
 from pathlib import Path
 
-# 添加项目根目录到 Python 路径
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
-from epub2speech.picker import EpubPicker
+from epub2speech.epub_picker import EpubPicker
 
-# 测试数据定义 - 两本不同语言的 EPUB2 书籍
 TEST_BOOKS = [
     {
         "filename": "The little prince.epub",
@@ -299,6 +297,13 @@ def test_picker_functionality():
                 expected_title, expected_href = expected["nav_items"][j]
                 assert actual_title == expected_title, f"Navigation item {j+1} title mismatch: expected '{expected_title}', actual '{actual_title}'"
                 assert actual_href == expected_href, f"Navigation item {j+1} href mismatch: expected '{expected_href}', actual '{actual_href}'"
+
+            # 5. Test text extraction from first chapter
+            if nav_items:
+                first_href = nav_items[0][1]
+                text_content = picker.extract_text(first_href)
+                assert len(text_content) > 0, "Should extract text from chapter, got empty string"
+                print(f"   📖 Text extraction: {len(text_content)} characters from first chapter")
 
             print(f"   ✅ {filename} all tests passed")
             print(f"   📊 Version: {actual_version}, Navigation items: {actual_nav_count}")
