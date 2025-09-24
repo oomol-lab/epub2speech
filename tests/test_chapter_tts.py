@@ -42,9 +42,16 @@ def test_chapter_tts():
         print("❌ No Azure configuration found in config file")
         return False
 
+    subscription_key = azure_config.get("subscription_key")
+    region = azure_config.get("region")
+
+    if not subscription_key or not region:
+        print("❌ Azure configuration missing required fields")
+        return False
+
     tts = AzureTextToSpeech(
-        subscription_key=azure_config.get("subscription_key"),
-        region=azure_config.get("region")
+        subscription_key=subscription_key,
+        region=region
     )
 
     if not tts.validate_config():
@@ -57,7 +64,7 @@ def test_chapter_tts():
     chapter_tts = ChapterTTS(
         tts_protocol=tts,
         sample_rate=24000,
-        max_sentence_length=500
+        max_segment_length=500
     )
 
     print("✅ ChapterTTS processor created successfully")
@@ -73,16 +80,6 @@ def test_chapter_tts():
 
     Finally, this is the last sentence of the chapter introduction.
     """
-
-    chapter_info = chapter_tts.get_chapter_info(test_chapter_text)
-    print("📊 Chapter info:")
-    print(f"   Total characters: {chapter_info['total_characters']}")
-    print(f"   Total sentences: {chapter_info['total_sentences']}")
-    print(f"   Average sentence length: {chapter_info['average_sentence_length']:.1f}")
-    print("   Sample sentences:")
-    for i, sentence in enumerate(chapter_info['sample_sentences']):
-        print(f"     {i+1}. {sentence}")
-
     # Test audio generation
     output_dir = Path(__file__).parent / "dist"
     temp_dir = Path(__file__).parent / "temp"
@@ -172,12 +169,12 @@ def test_cjk_sentence_splitting():
         {
             "name": "Mixed CJK and English",
             "text": "This is a long sentence in English, it has multiple clauses; each clause has different content: first clause introduces background, second clause explains situation. 这是一个很长的中文句子，包含了英文和中文的混合内容；这种混合很常见。",
-            "expected_min_sentences": 2  # Mixed content should split at Western punctuation
+            "expected_min_sentences": 1  # Combined into one segment due to length constraints
         },
         {
             "name": "Korean with Chinese punctuation",
             "text": "이것은 긴 한국어 문장입니다, 여러 절을 포함하고 있습니다; 각 절에는 다른 내용이 있습니다: 첫 번째 절은 배경을 소개합니다. 这是包含韩语和中文的长句，展示了混合使用的情况。",
-            "expected_min_sentences": 2  # Should split at Western punctuation
+            "expected_min_sentences": 1  # Combined into one segment due to length constraints
         }
     ]
 
@@ -192,16 +189,17 @@ def test_cjk_sentence_splitting():
         print(f"\n📄 Testing: {test_case['name']}")
         print(f"Text: {test_case['text'][:100]}…")
 
-        # Test sentence splitting
-        sentences = chapter_tts.split_text_into_sentences(test_case['text'])
-        print(f"Number of sentences: {len(sentences)}")
-        print(f"Average sentence length: {sum(len(s) for s in sentences) / len(sentences):.1f}")
+        # Test segment splitting
+        segments = chapter_tts.split_text_into_segments(test_case['text'])
+        segment_list = list(segments)
+        print(f"Number of segments: {len(segment_list)}")
+        print(f"Average segment length: {sum(len(s) for s in segment_list) / len(segment_list):.1f}")
 
-        # Verify minimum expected sentences
-        if len(sentences) >= test_case['expected_min_sentences']:
-            print("✅ Sentence splitting successful")
+        # Verify minimum expected segments
+        if len(segment_list) >= test_case['expected_min_sentences']:
+            print("✅ Segment splitting successful")
         else:
-            print(f"❌ Expected at least {test_case['expected_min_sentences']} sentences, got {len(sentences)}")
+            print(f"❌ Expected at least {test_case['expected_min_sentences']} segments, got {len(segment_list)}")
             all_tests_passed = False
 
         # Test audio generation

@@ -2,21 +2,25 @@ import uuid
 import numpy as np
 import soundfile as sf
 from pathlib import Path
-from typing import List, Optional, Callable, Dict, Any
+from typing import List, Optional, Callable, Generator
 from spacy.lang.xx import MultiLanguage
 from spacy.language import Language
+from spacy.tokens import Span
 
 from .tts import TextToSpeechProtocol
+from resource_segmentation import split, Resource, Segment
 
+SEGMENT_LEVEL = 1
+SENTENCE_LEVEL = 2
 
 class ChapterTTS:
-    """Convert chapter text to speech using sentence-by-sentence processing"""
+    """Convert chapter text to speech using segment-by-segment processing"""
 
     def __init__(
         self,
         tts_protocol: TextToSpeechProtocol,
         sample_rate: int = 24000,
-        max_sentence_length: int = 500,
+        max_segment_length: int = 500,
         language_model: Optional[str] = None
     ):
         """
@@ -25,12 +29,12 @@ class ChapterTTS:
         Args:
             tts_protocol: TTS protocol instance for audio generation
             sample_rate: Audio sample rate in Hz
-            max_sentence_length: Maximum characters per sentence
+            max_segment_length: Maximum characters per segment
             language_model: spaCy language model to use (default: xx_ent_wiki_sm)
         """
         self.tts_protocol = tts_protocol
         self.sample_rate = sample_rate
-        self.max_sentence_length = max_sentence_length
+        self.max_segment_length = max_segment_length
         self._nlp = self._load_language_model(language_model)
 
     def _load_language_model(self, language_model: Optional[str]) -> Language:
@@ -68,33 +72,27 @@ class ChapterTTS:
         Returns:
             True if successful, False otherwise
         """
-        # Ensure temp directory exists
         temp_dir.mkdir(parents=True, exist_ok=True)
-
-        # Process text into sentences
-        sentences = self.split_text_into_sentences(text)
-        if not sentences:
+        segments = list(self.split_text_into_segments(text))
+        if not segments:
             return False
 
-        # Create output directory
         output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Generate audio for each sentence
         audio_segments = []
         temp_files_created = []  # Track temp files for cleanup
 
         try:
-            for i, sentence in enumerate(sentences):
+            for i, segment in enumerate(segments):
                 if progress_callback:
-                    progress_callback(i + 1, len(sentences))
+                    progress_callback(i + 1, len(segments))
 
                 # Generate temporary audio file with UUID prefix
                 session_id = str(uuid.uuid4())[:8]  # Short UUID for filename
-                temp_audio_path = temp_dir / f"{session_id}_sentence_{i:04d}.wav"
+                temp_audio_path = temp_dir / f"{session_id}_segment_{i:04d}.wav"
                 temp_files_created.append(temp_audio_path)
 
                 success = self.tts_protocol.convert_text_to_audio(
-                    text=sentence,
+                    text=segment,
                     output_path=temp_audio_path,
                     voice=voice
                 )
@@ -109,7 +107,7 @@ class ChapterTTS:
                         pass
                     audio_segments.append(audio_data)
                 else:
-                    # Continue with next sentence instead of failing completely
+                    # Continue with next segment instead of failing completely
                     continue
 
             if not audio_segments:
@@ -128,147 +126,98 @@ class ChapterTTS:
                 if temp_file.exists():
                     temp_file.unlink()
 
-    def split_text_into_sentences(self, text: str) -> List[str]:
-        """Split text into sentences using spaCy with CJK punctuation support"""
-        # Clean text
+    def split_text_into_segments(self, text: str) -> Generator[str, None, None]:
+        """Split text into segments using spacy for structure analysis and resource-segmentation for length control"""
         text = text.strip()
         if not text:
-            return []
+            return
 
-        # First, split on CJK sentence-ending punctuation
-        cjk_sentences = self._split_cjk_sentences(text)
+        all_resources = []
+        doc = self._nlp(text)
+        next_start_incision = 2  # First segment starts with boundary
 
-        # Then process each sentence with spaCy for further splitting
-        all_sentences = []
-        for sentence in cjk_sentences:
-            if not sentence.strip():
+        for sent in doc.sents:
+            segment_text = sent.text.strip()
+            if not segment_text:
                 continue
 
-            # Process with spaCy
-            doc = self._nlp(sentence)
+            resources = list(self._build_segment_internal_structure(sent))
+            if not resources:
+                continue
 
-            for sent in doc.sents:
-                sentence_text = sent.text.strip()
-                if len(sentence_text) > self.max_sentence_length:
-                    # Split long sentences at punctuation
-                    sub_sentences = self._split_long_sentence(sentence_text)
-                    all_sentences.extend(sub_sentences)
-                else:
-                    all_sentences.append(sentence_text)
+            resources[0].start_incision = next_start_incision
+            resources[-1].end_incision = 2
+            next_start_incision = 2  # Update for next segment
 
-        # Filter out empty sentences, but keep very short ones (even single words)
-        sentences = [s for s in all_sentences if s.strip()]
+            all_resources.extend(resources)
 
-        return sentences
+        if not all_resources:
+            text_resource = Resource(
+                count=len(text),
+                start_incision=SENTENCE_LEVEL,  # Treat as segment boundary
+                end_incision=SENTENCE_LEVEL,
+                payload=text
+            )
+            all_resources.append(text_resource)
 
-    def _split_cjk_sentences(self, text: str) -> List[str]:
-        """Split text on CJK sentence-ending punctuation and major clause separators"""
-        # CJK sentence-ending punctuation (highest priority)
-        cjk_endings = [
-            "。",  # Chinese/Japanese period
-            "！",  # Chinese/Japanese exclamation
-            "？",  # Chinese/Japanese question
-            ".",   # Western period
-            "!",   # Western exclamation
-            "?",   # Western question
-        ]
+        yield from self._split_by_resource_segmentation(all_resources)
 
-        # Major clause separators (lower priority, only split if sentence is still long)
-        clause_separators = [
-            "；",  # Chinese semicolon
-            "：",  # Chinese colon
-            "，",  # Chinese comma
-            "；",  # Chinese semicolon
-            ":",   # Western colon
-            ";",   # Western semicolon
-            ",",   # Western comma (for very long sentences)
-        ]
+    def _build_segment_internal_structure(self, sent: Span) -> Generator[Resource, None, None]:
+        """Build segment internal structure using Resource with low split priority"""
+        current_fragment: list[str] = []
+        for token in sent:
+            if token.is_punct:
+                if current_fragment:
+                    fragment_text = "".join(current_fragment)
+                    fragment_resource = Resource(
+                        count=len(fragment_text),
+                        start_incision=SEGMENT_LEVEL,
+                        end_incision=SEGMENT_LEVEL,
+                        payload=fragment_text
+                    )
+                    yield fragment_resource
+                    current_fragment = []
 
-        def split_on_chars(text: str, split_chars: List[str]) -> List[str]:
-            """Split text on specific characters"""
-            sentences = []
-            current_sentence = ""
-
-            for char in text:
-                current_sentence += char
-                if char in split_chars:
-                    # Found split point, add current sentence
-                    if current_sentence.strip():
-                        sentences.append(current_sentence.strip())
-                    current_sentence = ""
-
-            # Add any remaining text
-            if current_sentence.strip():
-                sentences.append(current_sentence.strip())
-
-            # If no split points found, return original text
-            if not sentences:
-                return [text]
-
-            return sentences
-
-        # First split on sentence endings
-        sentences = split_on_chars(text, cjk_endings)
-
-        # For each resulting sentence, if it's still very long, split on clause separators
-        final_sentences = []
-        for sentence in sentences:
-            if len(sentence) > self.max_sentence_length // 2:  # If longer than half max length
-                clause_parts = split_on_chars(sentence, clause_separators)
-                final_sentences.extend(clause_parts)
+                punct_resource = Resource(
+                    count=len(token.text),
+                    start_incision=SEGMENT_LEVEL,
+                    end_incision=SEGMENT_LEVEL,
+                    payload=token.text
+                )
+                yield punct_resource
             else:
-                final_sentences.append(sentence)
+                current_fragment.append(token.text_with_ws)
 
-        return final_sentences
+        if current_fragment:
+            fragment_text = "".join(current_fragment)
+            fragment_resource = Resource(
+                count=len(fragment_text),
+                start_incision=SEGMENT_LEVEL,
+                end_incision=SEGMENT_LEVEL,
+                payload=fragment_text
+            )
+            yield fragment_resource
 
-    def _split_long_sentence(self, sentence: str) -> List[str]:
-        """Split a long sentence at punctuation marks - supports CJK languages"""
-        # Split at common punctuation (tuple for immutability and performance)
-        split_points = (
-            # Western punctuation
-            ",", ";", ":",
-            # Em dashes and en dashes
-            "—", "–", "-",
-            # Chinese punctuation
-            "，", "；", "：", "、", "——",
-            # Japanese punctuation
-            "、", "。", "，", "；", "：",
-            # Korean punctuation
-            "，", "；", "：", "、",
-            # Other useful separators
-            "（", "）", "【", "】", "《", "》", "〈", "〉"
-        )
+    def _split_by_resource_segmentation(self, resources: List[Resource]) -> Generator[str, None, None]:
+        """Split resources by length constraints using resource-segmentation"""
+        max_byte_length = self.max_segment_length * 3
+        groups = list(split(
+            iter(resources),
+            max_segment_count=max_byte_length,
+            border_incision=1,
+            gap_rate=0.0,
+            tail_rate=0.0
+        ))
 
-        for punct in split_points:
-            if punct in sentence:
-                parts = sentence.split(punct)
-                result = []
-                for i, part in enumerate(parts):
-                    part = part.strip()
-                    if part:
-                        # Add punctuation back except for last part
-                        if i < len(parts) - 1:
-                            part += punct
-                        result.append(part)
-                return result
+        for group in groups:
+            segment_chars = []
+            for item in group.body:
+                if isinstance(item, Segment):
+                    for resource in item.resources:
+                        segment_chars.append(resource.payload)
+                elif isinstance(item, Resource):
+                    segment_chars.append(item.payload)
 
-        # If no punctuation found, split by length
-        words = sentence.split()
-        mid_point = len(words) // 2
-
-        first_half = " ".join(words[:mid_point])
-        second_half = " ".join(words[mid_point:])
-
-        return [first_half, second_half]
-
-    def get_chapter_info(self, text: str) -> Dict[str, Any]:
-        """Get information about a chapter"""
-        sentences = self.split_text_into_sentences(text)
-
-        return {
-            "total_characters": len(text),
-            "total_sentences": len(sentences),
-            "average_sentence_length": sum(len(s) for s in sentences) / len(sentences) if sentences else 0,
-            "longest_sentence": max(sentences, key=len) if sentences else "",
-            "sample_sentences": sentences[:3] if len(sentences) > 3 else sentences
-        }
+            combined_text = "".join(segment_chars).strip()
+            if combined_text:
+                yield combined_text

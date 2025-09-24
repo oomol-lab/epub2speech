@@ -1226,6 +1226,18 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
+name = "resource-segmentation"
+version = "0.0.5"
+description = ""
+optional = false
+python-versions = "<3.14,>=3.10"
+groups = ["main"]
+files = [
+    {file = "resource_segmentation-0.0.5-py3-none-any.whl", hash = "sha256:11bf8f775fb93a2246b15f483fada9f8921feaca1f65fd43080ff357b7ca721b"},
+    {file = "resource_segmentation-0.0.5.tar.gz", hash = "sha256:5a12da9bb1d9aa6663ea9b32e66f93ae094897d94d9173714866fd0a9b042e8f"},
+]
+
+[[package]]
 name = "rich"
 version = "14.1.0"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
@@ -1807,4 +1819,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "137df608c553308bb06782e42c39a0371de1d2e4d179c5e835a1962e548724d7"
+content-hash = "fd1be09ab3946e9e5da6adcc86fe94c8267f143719eab14db38d08c60c062ee8"
