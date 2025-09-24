@@ -1,7 +1,9 @@
-from pathlib import Path
+import soundfile as sf
+import numpy as np
 
 import azure.cognitiveservices.speech as speechsdk
 
+from pathlib import Path
 from .protocol import TextToSpeechProtocol
 
 
@@ -86,58 +88,36 @@ class AzureTextToSpeech(TextToSpeechProtocol):
                 audio_config=audio_config
             )
 
-            # Build SSML for speech synthesis
-            ssml = self._build_ssml(text, voice)
+            # Configure voice
+            self._speech_config.speech_synthesis_voice_name = voice
 
-            result = speech_synthesizer.speak_ssml_async(ssml).get()
+            # Convert text to speech using plain text
+            result = speech_synthesizer.speak_text_async(text).get()
 
             if result and result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
 
                 # 验证生成的音频文件不是静音
                 if output_path.exists():
-                    try:
-                        import soundfile as sf
-                        import numpy as np
-                        audio_data, _ = sf.read(output_path)
-                        if len(audio_data) > 0:
-                            audio_range = np.max(audio_data) - np.min(audio_data)
-                            is_silent = np.allclose(audio_data, 0) or audio_range < 0.001
-                            if is_silent:
-                                raise RuntimeError(f"Generated audio file is silent! Audio range: [{np.min(audio_data)}, {np.max(audio_data)}]. This may indicate Azure TTS configuration or language support issue")
-                            # Audio validation passed, continue normally
-                        else:
-                            raise RuntimeError("Generated audio file is empty (0 samples)")
-                    except Exception as e:
-                        # If audio validation fails, we still return True since the file was generated
-                        # But we don't need to log it
-                        pass
+                    audio_data, _ = sf.read(output_path)
+                    if len(audio_data) > 0:
+                        audio_range = np.max(audio_data) - np.min(audio_data)
+                        is_silent = np.allclose(audio_data, 0) or audio_range < 0.001
+                        if is_silent:
+                            raise RuntimeError(f"Generated audio file is silent! Audio range: [{np.min(audio_data)}, {np.max(audio_data)}]. This may indicate Azure TTS configuration or language support issue")
+                        # Audio validation passed, continue normally
+                    else:
+                        raise RuntimeError("Generated audio file is empty (0 samples)")
 
                 return True
             elif result and result.reason == speechsdk.ResultReason.Canceled:
                 cancellation_details = result.cancellation_details
                 raise RuntimeError(f"Speech synthesis canceled: {cancellation_details.reason}. Error details: {cancellation_details.error_details if cancellation_details.error_details else 'None'}")
-                return False
             else:
                 error_reason = result.reason if result else "Unknown error"
                 raise RuntimeError(f"Speech synthesis failed: {error_reason}")
-                return False
 
         except Exception as e:
             raise RuntimeError(f"Exception during speech synthesis: {e}") from e
-            return False
-
-    def _build_ssml(self, text: str, voice: str) -> str:
-        """
-        Build SSML (Speech Synthesis Markup Language) for speech synthesis
-
-        Args:
-            text: Text content
-            voice: Voice to use
-
-        Returns:
-            SSML string
-        """
-        return f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-CN"><voice name="{voice}">{text}</voice></speak>'
 
     def get_available_voices(self) -> list[str]:
         """
