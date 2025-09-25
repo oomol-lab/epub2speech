@@ -45,6 +45,10 @@ jobs:
     - name: Install project
       run: poetry install --no-interaction
 
+    - name: Run pylint check
+      run: |
+        poetry run python scripts/lint.py
+
     - name: Run tests
       run: |
         poetry run python test.py

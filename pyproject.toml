@@ -47,6 +47,7 @@ epub2speech = "epub2speech.cli:main"
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "pylint>=3.0.0",
 ]
 
 [build-system]
