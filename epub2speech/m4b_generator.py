@@ -27,7 +27,8 @@ class M4BGenerator:
 
     def generate_m4b(
         self,
-        title: str,
+        titles: list[str],
+        authors: list[str],
         chapters: list[ChapterInfo],
         output_path: Path,
         workspace_path: Path,
@@ -44,8 +45,8 @@ class M4BGenerator:
             if not chapter.audio_file.exists():
                 raise FileNotFoundError(f"Audio file not found: {chapter.audio_file}")
 
-        metadata_file = self._create_chapter_metadata(chapters, workspace_path)
-        concat_audio = self._concat_audio_files(chapters, workspace_path, title)
+        metadata_file = self._create_chapter_metadata(chapters, workspace_path, titles, authors)
+        concat_audio = self._concat_audio_files(chapters, workspace_path)
         cover_args: list[str] = []
 
         if cover_path and cover_path.exists():
@@ -75,11 +76,25 @@ class M4BGenerator:
         self._run_command(ffmpeg_cmd, "FFmpeg failed to create M4B")
         return output_path
 
-    def _create_chapter_metadata(self, chapters: list[ChapterInfo], work_dir: Path) -> Path:
+    def _create_chapter_metadata(self, chapters: list[ChapterInfo], work_dir: Path, titles: list[str], authors: list[str]) -> Path:
         metadata_file = work_dir / "chapters.txt"
 
         with open(metadata_file, "w", encoding="utf-8") as f:
             f.write(";FFMETADATA1\n")
+
+            # Write titles
+            if titles:
+                # Use first title as main title, join multiple titles with " / " for compatibility
+                main_title = " / ".join(titles)
+                f.write(f"title={main_title}\n")
+                f.write("\n")
+
+            # Write authors
+            if authors:
+                # Join multiple authors with " / " for compatibility
+                author_string = " / ".join(authors)
+                f.write(f"author={author_string}\n")
+                f.write("\n")
 
             start_time = 0
             for chapter in chapters:
@@ -108,11 +123,11 @@ class M4BGenerator:
         result = self._run_command(args, f"Failed to probe duration for {file_path}")
         return float(result.stdout.strip())
 
-    def _concat_audio_files(self, chapters: list[ChapterInfo], work_dir: Path, book_title: str) -> Path:
+    def _concat_audio_files(self, chapters: list[ChapterInfo], work_dir: Path) -> Path:
         work_dir.mkdir(parents=True, exist_ok=True)
 
-        file_list_path = work_dir / f"{book_title}_concat_list.txt"
-        concat_audio_path = work_dir / f"{book_title}_concatenated.tmp.mp4"
+        file_list_path = work_dir / "concat_list.txt"
+        concat_audio_path = work_dir / "concatenated.tmp.mp4"
 
         with open(file_list_path, "w", encoding="utf-8") as f:
             for chapter in chapters:

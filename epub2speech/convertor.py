@@ -83,7 +83,8 @@ class _EpubToSpeechConverter:
                 cover_bytes = None
 
         self._m4b_generator.generate_m4b(
-            title=self._epub_picker.title[0] if self._epub_picker.title else "Unknown",
+            titles=self._epub_picker.title,
+            authors=self._epub_picker.author,
             chapters=chapter_infos,
             output_path=self._output_path,
             workspace_path=self._workspace_path,
