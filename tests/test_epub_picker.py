@@ -111,16 +111,16 @@ def test_picker_functionality():
             assert actual_version == expected["epub_version"], f"EPUB version mismatch: expected {expected['epub_version']}, actual {actual_version}"
 
             # 2. Test metadata extraction
-            actual_titles = picker.meta_titles
+            actual_titles = picker.title
             assert len(actual_titles) > 0, "Should have title metadata"
-            assert actual_titles[0][0] == expected["meta_titles"][0][0], f"Title mismatch: expected '{expected['meta_titles'][0][0]}', actual '{actual_titles[0][0]}'"
+            assert actual_titles[0] == expected["meta_titles"][0][0], f"Title mismatch: expected '{expected['meta_titles'][0][0]}', actual '{actual_titles[0]}'"
 
-            actual_creators = picker.meta_creators
+            actual_creators = picker.author
             assert len(actual_creators) > 0, "Should have creator metadata"
-            assert actual_creators[0][0] == expected["meta_creators"][0][0], f"Creator mismatch: expected '{expected['meta_creators'][0][0]}', actual '{actual_creators[0][0]}'"
+            assert actual_creators[0] == expected["meta_creators"][0][0], f"Creator mismatch: expected '{expected['meta_creators'][0][0]}', actual '{actual_creators[0]}'"
 
             # 3. Test cover extraction
-            has_cover = picker.cover is not None
+            has_cover = picker.cover_bytes is not None
             assert has_cover == expected["has_cover"], f"Cover existence mismatch: expected {expected['has_cover']}, actual {has_cover}"
 
             # 4. Test navigation items extraction

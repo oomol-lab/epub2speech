@@ -147,10 +147,9 @@ class M4BGenerator:
 
     def generate_m4b(self,
                     title: str,
-                    _author: str,
                     chapters: List[ChapterInfo],
                     output_path: Path,
-                    cover_image: Optional[Path] = None,
+                    cover_path: Path | None = None,
                     audio_bitrate: str = "64k") -> Path:
         """
         生成M4B有声书文件
@@ -185,9 +184,9 @@ class M4BGenerator:
 
         # 准备封面参数
         cover_args = []
-        if cover_image and cover_image.exists():
+        if cover_path and cover_path.exists():
             cover_args = [
-                '-i', str(cover_image),
+                '-i', str(cover_path),
                 '-map', '2:v',
                 '-disposition:v', 'attached_pic',
                 '-c:v', 'copy',
@@ -239,7 +238,6 @@ class M4BGenerator:
 
 def create_m4b_from_chapters(
     title: str,
-    author: str,
     chapters: List[Dict[str, Any]],
     output_path: str,
     cover_image: Optional[str] = None,
@@ -281,11 +279,9 @@ def create_m4b_from_chapters(
     # 生成M4B
     result_path = generator.generate_m4b(
         title=title,
-        _author=author,
         chapters=chapter_infos,
         output_path=Path(output_path),
-        cover_image=Path(cover_image) if cover_image else None,
+        cover_path=Path(cover_image) if cover_image else None,
         audio_bitrate=audio_bitrate
     )
-
     return str(result_path)

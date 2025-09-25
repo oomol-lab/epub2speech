@@ -10,15 +10,34 @@ from .extractor import extract_text_from_html
 class EpubPicker:
     def __init__(self, file_path: PathLike) -> None:
         self._book: epub.EpubBook = epub.read_epub(file_path)
-        self.meta_titles: list[str] = self._book.get_metadata("DC", "title")
-        self.meta_creators: list[str] = self._book.get_metadata("DC", "creator")
-        self.cover: bytes | None = self._find_cover(self._book)
         nav_item, epub_version = self._determine_epub_type()
         self._nav_item: Any = nav_item
         self._epub_version: Literal["EPUB2", "EPUB3"] | None = epub_version
 
-    def _find_cover(self, book: epub.EpubBook) -> bytes | None:
-        cover_item = self._find_cover_item(book)
+    def _determine_epub_type(self) -> tuple[Any | None, Literal["EPUB2", "EPUB3"] | None]:
+        for item in self._book.get_items_of_type(ITEM_NAVIGATION):
+            if item and item.file_name and item.file_name.endswith('.ncx'):
+                return (item, "EPUB2")
+
+        # ITEM_NAVIGATION 可能无法识别 EPUB3 的所有导航文件，需要全面扫描
+        for item in self._book.get_items():
+            if item and item.file_name and item.file_name.endswith('.xhtml'):
+                # 优先检查内容是否包含 epub:type="toc"（EPUB3 标准）
+                content = item.get_content()
+                if content:
+                    if isinstance(content, bytes):
+                        content = content.decode("utf-8", errors="ignore")
+                    if 'epub:type="toc"' in content or "epub:type='toc'" in content:
+                        return (item, "EPUB3")
+        return (None, None)
+
+    @property
+    def epub_version(self) -> Literal["EPUB2", "EPUB3"] | None:
+        return self._epub_version
+    
+    @property
+    def cover_bytes(self) -> bytes | None:
+        cover_item = self._find_cover_item(self._book)
         if cover_item is not None:
             content = cover_item.get_content() 
             if isinstance(content, bytes):
@@ -47,26 +66,17 @@ class EpubPicker:
 
         return None
 
-    def _determine_epub_type(self) -> tuple[Any | None, Literal["EPUB2", "EPUB3"] | None]:
-        for item in self._book.get_items_of_type(ITEM_NAVIGATION):
-            if item and item.file_name and item.file_name.endswith('.ncx'):
-                return (item, "EPUB2")
-
-        # ITEM_NAVIGATION 可能无法识别 EPUB3 的所有导航文件，需要全面扫描
-        for item in self._book.get_items():
-            if item and item.file_name and item.file_name.endswith('.xhtml'):
-                # 优先检查内容是否包含 epub:type="toc"（EPUB3 标准）
-                content = item.get_content()
-                if content:
-                    if isinstance(content, bytes):
-                        content = content.decode("utf-8", errors="ignore")
-                    if 'epub:type="toc"' in content or "epub:type='toc'" in content:
-                        return (item, "EPUB3")
-        return (None, None)
+    @property
+    def title(self) -> list[str]:
+        return self._get_metadata_names("title")
 
     @property
-    def epub_version(self) -> Literal["EPUB2", "EPUB3"] | None:
-        return self._epub_version
+    def author(self) -> list[str]:
+        return self._get_metadata_names("creator")
+    
+    def _get_metadata_names(self, meta_name: str) -> list[str]:
+        metadatas = self._book.get_metadata("DC", meta_name)
+        return [str(meta[0]) for meta in metadatas if meta and meta[0]]
 
     def get_nav_items(self) -> Generator[tuple[str, str], None, None]:
         if self._epub_version is not None:

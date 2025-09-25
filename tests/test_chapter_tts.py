@@ -97,7 +97,7 @@ def test_chapter_tts():
     success = chapter_tts.process_chapter(
         text=test_chapter_text,
         output_path=output_path,
-        temp_dir=temp_dir,
+        workspace_path=temp_dir,
         voice="en-US-AriaNeural",
         progress_callback=progress_callback
     )
@@ -208,7 +208,7 @@ def test_cjk_sentence_splitting():
         success = chapter_tts.process_chapter(
             text=test_case['text'],
             output_path=output_path,
-            temp_dir=temp_dir,
+            workspace_path=temp_dir,
             voice="mock-voice"
         )
 

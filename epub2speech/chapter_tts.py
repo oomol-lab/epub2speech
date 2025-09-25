@@ -55,32 +55,17 @@ class ChapterTTS:
         self,
         text: str,
         output_path: Path,
-        temp_dir: Path,
-        voice: Optional[str] = None,
+        workspace_path: Path,
+        voice: str,
         progress_callback: Optional[Callable[[int, int], None]] = None
-    ) -> bool:
-        """
-        Process a chapter of text and convert to speech
-
-        Args:
-            text: Chapter text content
-            output_path: Path to save the audio file
-            temp_dir: Directory for temporary audio files
-            voice: Voice to use for TTS
-            progress_callback: Optional callback for progress updates (current, total)
-
-        Returns:
-            True if successful, False otherwise
-        """
-        temp_dir.mkdir(parents=True, exist_ok=True)
+    ) -> None:
+        # TODO: 重构 temp 逻辑，不需要 temp 这个概念了
         segments = list(self.split_text_into_segments(text))
         if not segments:
-            return False
+            return
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
         audio_segments = []
         temp_files_created = []  # Track temp files for cleanup
-
         try:
             for i, segment in enumerate(segments):
                 if progress_callback:
@@ -88,37 +73,31 @@ class ChapterTTS:
 
                 # Generate temporary audio file with UUID prefix
                 session_id = str(uuid.uuid4())[:8]  # Short UUID for filename
-                temp_audio_path = temp_dir / f"{session_id}_segment_{i:04d}.wav"
+                temp_audio_path = workspace_path / f"{session_id}_segment_{i:04d}.wav"
                 temp_files_created.append(temp_audio_path)
 
-                success = self.tts_protocol.convert_text_to_audio(
+                self.tts_protocol.convert_text_to_audio(
                     text=segment,
                     output_path=temp_audio_path,
                     voice=voice
                 )
-
-                if success and temp_audio_path.exists():
-                    # Load audio data
-                    audio_data: np.ndarray
-                    sr: int
-                    audio_data, sr = sf.read(temp_audio_path)
-                    if sr != self.sample_rate:
-                        # Handle sample rate mismatch if needed
-                        pass
-                    audio_segments.append(audio_data)
-                else:
-                    # Continue with next segment instead of failing completely
+                if not temp_audio_path.exists():
                     continue
 
-            if not audio_segments:
-                return False
+                # Load audio data
+                audio_data: np.ndarray
+                sr: int
+                audio_data, sr = sf.read(temp_audio_path)
+                if sr != self.sample_rate:
+                    # Handle sample rate mismatch if needed
+                    pass
+                audio_segments.append(audio_data)
 
             # Concatenate all audio segments
             final_audio = np.concatenate(audio_segments)
 
             # Save final audio file
             sf.write(output_path, final_audio, self.sample_rate)
-            return True
 
         finally:
             # Clean up temporary files

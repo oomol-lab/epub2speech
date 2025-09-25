@@ -11,7 +11,7 @@ class TextToSpeechProtocol(Protocol):
         text: str,
         output_path: Path,
         voice: str | None = None
-    ) -> bool:
+    ) -> None:
         """
         Convert text to audio file
 
