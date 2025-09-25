@@ -104,10 +104,8 @@ Examples:
         from .tts.azure_provider import AzureTextToSpeech
         tts_provider = AzureTextToSpeech(
             subscription_key=args.azure_key,
-            region=args.azure_region,
-            default_voice=args.voice
+            region=args.azure_region
         )
-
         print(f"Starting conversion: {epub_path.name}")
         print(f"Output file: {output_path}")
         print(f"Workspace: {workspace}")
