@@ -1,6 +1,6 @@
 [project]
 name = "epub2speech"
-version = "0.0.2"
+version = "0.0.3"
 description = "Convert EPUB e-books into high-quality audiobooks using Azure Text-to-Speech technology"
 readme = "README.md"
 license = {text = "MIT"}
@@ -34,6 +34,7 @@ dependencies = [
     "soundfile>=0.13.1,<0.14.0",
     "resource-segmentation==0.0.5",
     "scipy>=1.10.0,<2.0.0",
+    "pillow (>=11.3.0,<12.0.0)",
 ]
 
 [project.urls]
