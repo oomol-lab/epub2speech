@@ -1,5 +1,7 @@
 import re
+import io
 
+from PIL import Image
 from os import PathLike
 from pathlib import Path
 from typing import Callable
@@ -76,11 +78,8 @@ class _EpubToSpeechConverter:
         cover_bytes = self._epub_picker.cover_bytes
         cover_path: Path | None = None
         if cover_bytes:
-            # TODO: 类型不一定是 jpg
-            cover_path = self._workspace_path / "cover.jpg"
-            with open(cover_path, "wb") as f:
-                f.write(cover_bytes)
-                cover_bytes = None
+            cover_path = self._save_cover_with_proper_extension(cover_bytes)
+            cover_bytes = None
 
         self._m4b_generator.generate_m4b(
             titles=self._epub_picker.title,
@@ -114,6 +113,37 @@ class _EpubToSpeechConverter:
             voice=self._voice,
         )
         return audio_path
+
+    def _save_cover_with_proper_extension(self, cover_bytes: bytes) -> Path:
+        try:
+            image_buffer = io.BytesIO(cover_bytes)
+            with Image.open(image_buffer) as img:
+                format_name = img.format
+                if format_name == 'JPEG':
+                    extension = '.jpg'
+                elif format_name == 'PNG':
+                    extension = '.png'
+                elif format_name == 'GIF':
+                    extension = '.gif'
+                elif format_name == 'BMP':
+                    extension = '.bmp'
+                elif format_name == 'WEBP':
+                    extension = '.webp'
+                else:
+                    extension = '.jpg'
+
+                cover_path = self._workspace_path / f"cover{extension}"
+
+                # 保存图片
+                img.save(cover_path, format=format_name)
+                return cover_path
+
+        except Exception:
+            # 如果检测失败，回退到默认的jpg
+            cover_path = self._workspace_path / "cover.jpg"
+            with open(cover_path, "wb") as f:
+                f.write(cover_bytes)
+            return cover_path
 
     def _sanitize_filename(self, filename: str) -> str:
         sanitized = re.sub(r'[<>:"/\|?*]', '_', filename)
