@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import os
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
@@ -91,77 +92,74 @@ TEST_BOOKS = [
     }
 ]
 
-def test_picker_functionality():
-    """Comprehensive test of EpubPicker functionality"""
-    print("🧪 Starting comprehensive EpubPicker functionality test...\n")
 
-    for i, test_book in enumerate(TEST_BOOKS, 1):
-        filename = test_book["filename"]
-        expected = test_book["expected"]
+class TestEpubPicker(unittest.TestCase):
+    """Test cases for EpubPicker functionality"""
 
-        print(f"📚 Testing book {i}: {filename}")
+    def test_picker_functionality(self):
+        """Comprehensive test of EpubPicker functionality"""
+        print("🧪 Starting comprehensive EpubPicker functionality test...\n")
 
-        try:
-            # Create picker instance
-            epub_path = Path(__file__).parent / "assets" / filename
-            picker = EpubPicker(epub_path)
+        for i, test_book in enumerate(TEST_BOOKS, 1):
+            filename = test_book["filename"]
+            expected = test_book["expected"]
 
-            # 1. Test EPUB version detection
-            actual_version = picker.epub_version
-            assert actual_version == expected["epub_version"], f"EPUB version mismatch: expected {expected['epub_version']}, actual {actual_version}"
+            print(f"📚 Testing book {i}: {filename}")
 
-            # 2. Test metadata extraction
-            actual_titles = picker.title
-            assert len(actual_titles) > 0, "Should have title metadata"
-            assert actual_titles[0] == expected["meta_titles"][0][0], f"Title mismatch: expected '{expected['meta_titles'][0][0]}', actual '{actual_titles[0]}'"
+            with self.subTest(book=filename):
+                # Create picker instance
+                epub_path = Path(__file__).parent / "assets" / filename
+                picker = EpubPicker(epub_path)
 
-            actual_creators = picker.author
-            assert len(actual_creators) > 0, "Should have creator metadata"
-            assert actual_creators[0] == expected["meta_creators"][0][0], f"Creator mismatch: expected '{expected['meta_creators'][0][0]}', actual '{actual_creators[0]}'"
+                # 1. Test EPUB version detection
+                actual_version = picker.epub_version
+                self.assertEqual(actual_version, expected["epub_version"],
+                               f"EPUB version mismatch: expected {expected['epub_version']}, actual {actual_version}")
 
-            # 3. Test cover extraction
-            has_cover = picker.cover_bytes is not None
-            assert has_cover == expected["has_cover"], f"Cover existence mismatch: expected {expected['has_cover']}, actual {has_cover}"
+                # 2. Test metadata extraction
+                actual_titles = picker.title
+                self.assertGreater(len(actual_titles), 0, "Should have title metadata")
+                self.assertEqual(actual_titles[0], expected["meta_titles"][0][0],
+                               f"Title mismatch: expected '{expected['meta_titles'][0][0]}', actual '{actual_titles[0]}'")
 
-            # 4. Test navigation items extraction
-            nav_items = list(picker.get_nav_items())
-            expected_nav_count = len(expected["nav_items"])
-            actual_nav_count = len(nav_items)
+                actual_creators = picker.author
+                self.assertGreater(len(actual_creators), 0, "Should have creator metadata")
+                self.assertEqual(actual_creators[0], expected["meta_creators"][0][0],
+                               f"Creator mismatch: expected '{expected['meta_creators'][0][0]}', actual '{actual_creators[0]}'")
 
-            assert actual_nav_count == expected_nav_count, f"Navigation items count mismatch: expected {expected_nav_count}, actual {actual_nav_count}"
+                # 3. Test cover extraction
+                has_cover = picker.cover_bytes is not None
+                self.assertEqual(has_cover, expected["has_cover"],
+                               f"Cover existence mismatch: expected {expected['has_cover']}, actual {has_cover}")
 
-            # Verify each navigation item
-            for j, (actual_title, actual_href) in enumerate(nav_items):
-                expected_title, expected_href = expected["nav_items"][j]
-                assert actual_title == expected_title, f"Navigation item {j+1} title mismatch: expected '{expected_title}', actual '{actual_title}'"
-                assert actual_href == expected_href, f"Navigation item {j+1} href mismatch: expected '{expected_href}', actual '{actual_href}'"
+                # 4. Test navigation items extraction
+                nav_items = list(picker.get_nav_items())
+                expected_nav_count = len(expected["nav_items"])
+                actual_nav_count = len(nav_items)
 
-            # 5. Test text extraction from first chapter
-            if nav_items:
-                first_href = nav_items[0][1]
-                text_content = picker.extract_text(first_href)
-                assert len(text_content) > 0, "Should extract text from chapter, got empty string"
-                print(f"   📖 Text extraction: {len(text_content)} characters from first chapter")
+                self.assertEqual(actual_nav_count, expected_nav_count,
+                               f"Navigation items count mismatch: expected {expected_nav_count}, actual {actual_nav_count}")
 
-            print(f"   ✅ {filename} all tests passed")
-            print(f"   📊 Version: {actual_version}, Navigation items: {actual_nav_count}")
+                # Verify each navigation item
+                for j, (actual_title, actual_href) in enumerate(nav_items):
+                    expected_title, expected_href = expected["nav_items"][j]
+                    self.assertEqual(actual_title, expected_title,
+                                   f"Navigation item {j+1} title mismatch: expected '{expected_title}', actual '{actual_title}'")
+                    self.assertEqual(actual_href, expected_href,
+                                   f"Navigation item {j+1} href mismatch: expected '{expected_href}', actual '{actual_href}'")
 
-        except Exception as e:
-            print(f"   ❌ {filename} test failed: {e}")
-            raise
+                # 5. Test text extraction from first chapter
+                if nav_items:
+                    first_href = nav_items[0][1]
+                    text_content = picker.extract_text(first_href)
+                    self.assertGreater(len(text_content), 0, "Should extract text from chapter, got empty string")
+                    print(f"   📖 Text extraction: {len(text_content)} characters from first chapter")
 
-    print("\n🎉 All books tests passed!")
-    return True
+                print(f"   ✅ {filename} all tests passed")
+                print(f"   📊 Version: {actual_version}, Navigation items: {actual_nav_count}")
+
+        print("\n🎉 All books tests passed!")
+
 
 if __name__ == "__main__":
-    try:
-        test_picker_functionality()
-        sys.exit(0)
-    except AssertionError as e:
-        print(f"\n❌ 测试失败: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n💥 测试出错: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    unittest.main(verbosity=2)

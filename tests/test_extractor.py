@@ -3,7 +3,7 @@ import sys
 import os
 import traceback
 import random
-
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
@@ -93,6 +93,7 @@ TEST_BOOKS = [
     }
 ]
 
+
 def compare_text_head_tail(extracted_text, expected_head, expected_tail, max_chars=200):
     if not extracted_text:
         return False, False, "", ""
@@ -110,183 +111,165 @@ def compare_text_head_tail(extracted_text, expected_head, expected_tail, max_cha
 
     return head_match, tail_match, head_actual, tail_actual
 
-def test_extractor_functionality():
-    print("🧪 Starting text extractor functionality test...\n")
 
-    all_passed = True
+class TestTextExtractor(unittest.TestCase):
+    """Test cases for text extraction functionality"""
 
-    for book_data in TEST_BOOKS:
-        filename = book_data["filename"]
-        sample_chapters = book_data["sample_chapters"]
+    def test_extractor_functionality(self):
+        """Test text extractor functionality"""
+        print("🧪 Starting text extractor functionality test...\n")
 
-        print(f"📚 Testing book: {filename}")
+        all_passed = True
 
-        try:
-            # 创建 picker 实例
-            epub_path = Path(__file__).parent / "assets" / filename
-            picker = EpubPicker(epub_path)
+        for book_data in TEST_BOOKS:
+            filename = book_data["filename"]
+            sample_chapters = book_data["sample_chapters"]
 
-            # 测试每个抽样章节
-            for i, chapter_data in enumerate(sample_chapters):
-                nav_title = chapter_data["nav_title"]
-                href = chapter_data["href"]
-                expected_head = chapter_data["expected_head"]
-                expected_tail = chapter_data["expected_tail"]
+            print(f"📚 Testing book: {filename}")
 
-                print(f"   📄 Testing chapter {i+1}: {nav_title}")
+            with self.subTest(book=filename):
+                try:
+                    # 创建 picker 实例
+                    epub_path = Path(__file__).parent / "assets" / filename
+                    picker = EpubPicker(epub_path)
 
-                # 提取文本
-                extracted_text = picker.extract_text(href)
+                    # 测试每个抽样章节
+                    for i, chapter_data in enumerate(sample_chapters):
+                        nav_title = chapter_data["nav_title"]
+                        href = chapter_data["href"]
+                        expected_head = chapter_data["expected_head"]
+                        expected_tail = chapter_data["expected_tail"]
 
-                if not extracted_text:
-                    print(f"      ⚠️  No text extracted from {href}")
+                        print(f"   📄 Testing chapter {i+1}: {nav_title}")
+
+                        # 提取文本
+                        extracted_text = picker.extract_text(href)
+
+                        if not extracted_text:
+                            print(f"      ⚠️  No text extracted from {href}")
+                            continue
+
+                        # 比较头部和尾部
+                        head_match, tail_match, head_actual, tail_actual = compare_text_head_tail(
+                            extracted_text, expected_head, expected_tail
+                        )
+
+                        # 验证结果
+                        self.assertTrue(head_match,
+                                      f"Head mismatch for {nav_title}\nExpected: ...{expected_head[-50:]}...\nActual:   ...{head_actual[-50:]}...")
+                        self.assertTrue(tail_match,
+                                      f"Tail mismatch for {nav_title}\nExpected: ...{expected_tail[:50]}...\nActual:   ...{tail_actual[:50:]}...")
+
+                        # 显示成功信息
+                        head_chars = min(200, len(head_actual))
+                        print(f"      ✅ Head matches (first ~{head_chars} chars)")
+                        tail_chars = min(200, len(tail_actual))
+                        print(f"      ✅ Tail matches (last ~{tail_chars} chars)")
+                        print(f"      📊 Extracted {len(extracted_text)} characters total")
+
+                    print(f"   ✅ {filename} text extraction tests completed\n")
+
+                except Exception as e:
+                    print(f"   ❌ {filename} test failed: {e}")
+                    all_passed = False
+                    traceback.print_exc()
+
+        self.assertTrue(all_passed, "Some text extraction tests failed!")
+        print("🎉 All text extraction tests passed!")
+
+    def generate_test_data(self):
+        """Generate test data from EPUB files - utility method"""
+        print("🔧 Generating test data from EPUB files...\n")
+
+        # 使用现有的 TEST_BOOKS 来获取文件名列表，避免重复维护
+        test_books = [book["filename"] for book in TEST_BOOKS]
+        generated_data = []
+
+        for filename in test_books:
+            print(f"📊 Analyzing {filename}...")
+
+            try:
+                epub_path = Path(__file__).parent / "assets" / filename
+                picker = EpubPicker(epub_path)
+                nav_items = list(picker.get_nav_items())
+
+                if not nav_items:
+                    print(f"   ⚠️  No navigation items found in {filename}")
                     continue
 
-                # 比较头部和尾部
-                head_match, tail_match, head_actual, tail_actual = compare_text_head_tail(
-                    extracted_text, expected_head, expected_tail
-                )
+                print(f"   Found {len(nav_items)} chapters")
 
-                # 显示结果
-                if head_match:
-                    head_chars = min(200, len(head_actual))
-                    print(f"      ✅ Head matches (first ~{head_chars} chars)")
+                # 随机选择 2-3 个章节进行采样（如果章节足够多）
+                sample_size = min(3, len(nav_items))
+                if len(nav_items) > sample_size:
+                    sample_items = random.sample(nav_items, sample_size)
                 else:
-                    print("      ❌ Head mismatch")
-                    print(f"         Expected: ...{expected_head[-50:]}...")
-                    print(f"         Actual:   ...{head_actual[-50:]}...")
-                    all_passed = False
+                    sample_items = nav_items
 
-                if tail_match:
-                    tail_chars = min(200, len(tail_actual))
-                    print(f"      ✅ Tail matches (last ~{tail_chars} chars)")
+                book_data = {
+                    "filename": filename,
+                    "sample_chapters": []
+                }
+
+                for nav_title, href in sample_items:
+                    print(f"   📄 Sampling: {nav_title}")
+
+                    extracted_text = picker.extract_text(href)
+
+                    if extracted_text:
+                        # 获取头部和尾部文本
+                        head_text = extracted_text[:200] if len(extracted_text) > 200 else extracted_text
+                        tail_text = extracted_text[-200:] if len(extracted_text) > 200 else extracted_text
+
+                        chapter_data = {
+                            "nav_title": nav_title,
+                            "href": href,
+                            "expected_head": head_text,
+                            "expected_tail": tail_text
+                        }
+                        book_data["sample_chapters"].append(chapter_data)
+
+                        char_count = len(extracted_text)
+                        print(f"      ✓ Extracted {char_count} characters")
+                    else:
+                        print("      ⚠️  No text extracted")
+
+                if book_data["sample_chapters"]:
+                    generated_data.append(book_data)
+                    chapter_count = len(book_data['sample_chapters'])
+                    print(f"   ✅ Generated data for {chapter_count} chapters\n")
                 else:
-                    print("      ❌ Tail mismatch")
-                    print(f"         Expected: ...{expected_tail[:50]}...")
-                    print(f"         Actual:   ...{tail_actual[:50]}...")
-                    all_passed = False
+                    print(f"   ⚠️  No valid chapters found for {filename}")
+                    print()
 
-                print(f"      📊 Extracted {len(extracted_text)} characters total")
-
-            print(f"   ✅ {filename} text extraction tests completed\n")
-
-        except Exception as e:
-            print(f"   ❌ {filename} test failed: {e}")
-            all_passed = False
-            traceback.print_exc()
-
-    if all_passed:
-        print("🎉 All text extraction tests passed!")
-        return True
-    else:
-        print("❌ Some text extraction tests failed!")
-        return False
-
-def generate_test_data():
-    print("🔧 Generating test data from EPUB files...\n")
-
-    # 使用现有的 TEST_BOOKS 来获取文件名列表，避免重复维护
-    test_books = [book["filename"] for book in TEST_BOOKS]
-    generated_data = []
-
-    for filename in test_books:
-        print(f"📊 Analyzing {filename}...")
-
-        try:
-            epub_path = Path(__file__).parent / "assets" / filename
-            picker = EpubPicker(epub_path)
-            nav_items = list(picker.get_nav_items())
-
-            if not nav_items:
-                print(f"   ⚠️  No navigation items found in {filename}")
-                continue
-
-            print(f"   Found {len(nav_items)} chapters")
-
-            # 随机选择 2-3 个章节进行采样（如果章节足够多）
-            sample_size = min(3, len(nav_items))
-            if len(nav_items) > sample_size:
-                sample_items = random.sample(nav_items, sample_size)
-            else:
-                sample_items = nav_items
-
-            book_data = {
-                "filename": filename,
-                "sample_chapters": []
-            }
-
-            for nav_title, href in sample_items:
-                print(f"   📄 Sampling: {nav_title}")
-
-                extracted_text = picker.extract_text(href)
-
-                if extracted_text:
-                    # 获取头部和尾部文本
-                    head_text = extracted_text[:200] if len(extracted_text) > 200 else extracted_text
-                    tail_text = extracted_text[-200:] if len(extracted_text) > 200 else extracted_text
-
-                    chapter_data = {
-                        "nav_title": nav_title,
-                        "href": href,
-                        "expected_head": head_text,
-                        "expected_tail": tail_text
-                    }
-                    book_data["sample_chapters"].append(chapter_data)
-
-                    char_count = len(extracted_text)
-                    print(f"      ✓ Extracted {char_count} characters")
-                else:
-                    print("      ⚠️  No text extracted")
-
-            if book_data["sample_chapters"]:
-                generated_data.append(book_data)
-                chapter_count = len(book_data['sample_chapters'])
-                print(f"   ✅ Generated data for {chapter_count} chapters\n")
-            else:
-                print(f"   ⚠️  No valid chapters found for {filename}")
+            except Exception as e:
+                print(f"   ❌ Error processing {filename}: {e}")
                 print()
+                traceback.print_exc()
 
-        except Exception as e:
-            print(f"   ❌ Error processing {filename}: {e}")
-            print()
-            traceback.print_exc()
+        print("📋 Generated test data structure:")
+        print("You can copy this to replace TEST_BOOKS in test_extractor.py")
+        print("=" * 60)
+        print("TEST_BOOKS = [")
+        for book_data in generated_data:
+            print("    {")
+            print(f'        "filename": "{book_data["filename"]}",')
+            print('        "sample_chapters": [')
+            for chapter in book_data["sample_chapters"]:
+                print("            {")
+                print(f'                "nav_title": "{chapter["nav_title"]}",')
+                print(f'                "href": "{chapter["href"]}",')
+                # 处理文本中的引号和特殊字符
+                head_escaped = chapter["expected_head"].replace('"', '\\"').replace('\n', '\\n')
+                tail_escaped = chapter["expected_tail"].replace('"', '\\"').replace('\n', '\\n')
+                print(f'                "expected_head": "{head_escaped}",')
+                print(f'                "expected_tail": "{tail_escaped}"')
+                print("            },")
+            print("        ]")
+            print("    },")
+        print("]")
+        print("=" * 60)
 
-    print("📋 Generated test data structure:")
-    print("You can copy this to replace TEST_BOOKS in test_extractor.py")
-    print("=" * 60)
-    print("TEST_BOOKS = [")
-    for book_data in generated_data:
-        print("    {")
-        print(f'        "filename": "{book_data["filename"]}",')
-        print('        "sample_chapters": [')
-        for chapter in book_data["sample_chapters"]:
-            print("            {")
-            print(f'                "nav_title": "{chapter["nav_title"]}",')
-            print(f'                "href": "{chapter["href"]}",')
-            # 处理文本中的引号和特殊字符
-            head_escaped = chapter["expected_head"].replace('"', '\\"').replace('\n', '\\n')
-            tail_escaped = chapter["expected_tail"].replace('"', '\\"').replace('\n', '\\n')
-            print(f'                "expected_head": "{head_escaped}",')
-            print(f'                "expected_tail": "{tail_escaped}"')
-            print("            },")
-        print("        ]")
-        print("    },")
-    print("]")
-    print("=" * 60)
 
 if __name__ == "__main__":
-    try:
-        # 运行测试
-        test_extractor_functionality()
-
-        # 如果需要生成新的测试数据，可以取消下面的注释
-        # generate_test_data()
-
-        sys.exit(0)
-    except AssertionError as e:
-        print(f"\\n❌ 测试失败: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\\n💥 测试出错: {e}")
-        traceback.print_exc()
-        sys.exit(1)
+    unittest.main(verbosity=2)
