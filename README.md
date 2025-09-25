@@ -1,4 +1,7 @@
-# EPUB2Speech
+<div align=center>
+  <h1>EPUB to Speech</h1>
+  <p>English | <a href="./README_zh-CN.md">中文</a></p>
+</div>
 
 Convert EPUB e-books into high-quality audiobooks using Azure Text-to-Speech technology.
 
@@ -118,4 +121,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For issues and questions:
 1. Check existing GitHub issues
 2. Create a new issue with detailed information
-3. Include EPUB file samples if relevant (ensure no copyright restrictions)
+3. Include EPUB file samples if relevant (ensure no copyright restrictions)”，“file_path”:

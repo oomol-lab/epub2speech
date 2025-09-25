@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
-from epub2speech import ChapterTTS
+from epub2speech.chapter_tts import ChapterTTS
 from epub2speech.tts.azure_provider import AzureTextToSpeech
 from tests.utils.config import TTSConfig
 from epub2speech.tts import TextToSpeechProtocol
