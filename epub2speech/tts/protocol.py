@@ -8,12 +8,6 @@ class TextToSpeechProtocol(Protocol):
         self,
         text: str,
         output_path: Path,
-        voice: str | None = None
+        voice: str,
     ) -> None:
-        ...
-
-    def get_available_voices(self) -> list[str]:
-        ...
-
-    def validate_config(self) -> bool:
         ...
