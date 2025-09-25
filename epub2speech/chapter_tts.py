@@ -14,8 +14,6 @@ SEGMENT_LEVEL = 1
 SENTENCE_LEVEL = 2
 
 class ChapterTTS:
-    """Convert chapter text to speech using segment-by-segment processing"""
-
     def __init__(
         self,
         tts_protocol: TextToSpeechProtocol,
@@ -23,30 +21,19 @@ class ChapterTTS:
         max_segment_length: int = 500,
         language_model: Optional[str] = None
     ):
-        """
-        Initialize Chapter TTS processor
-
-        Args:
-            tts_protocol: TTS protocol instance for audio generation
-            sample_rate: Audio sample rate in Hz
-            max_segment_length: Maximum characters per segment
-            language_model: spaCy language model to use (default: xx_ent_wiki_sm)
-        """
         self.tts_protocol = tts_protocol
         self.sample_rate = sample_rate
         self.max_segment_length = max_segment_length
         self._nlp = self._load_language_model(language_model)
 
     def _load_language_model(self, language_model: Optional[str]) -> Language:
-        """Load spaCy language model"""
         if language_model:
             try:
                 import spacy
                 return spacy.load(language_model)
             except OSError:
-                pass  # Model not found, fall back to built-in sentencizer
+                pass
 
-        # Fallback to built-in sentencizer
         nlp: Language = MultiLanguage()
         nlp.add_pipe("sentencizer")
         return nlp
@@ -65,14 +52,13 @@ class ChapterTTS:
             return
 
         audio_segments = []
-        temp_files_created = []  # Track temp files for cleanup
+        temp_files_created = []
         try:
             for i, segment in enumerate(segments):
                 if progress_callback:
                     progress_callback(i + 1, len(segments))
 
-                # Generate temporary audio file with UUID prefix
-                session_id = str(uuid.uuid4())[:8]  # Short UUID for filename
+                session_id = str(uuid.uuid4())[:8]
                 temp_audio_path = workspace_path / f"{session_id}_segment_{i:04d}.wav"
                 temp_files_created.append(temp_audio_path)
 
@@ -84,36 +70,29 @@ class ChapterTTS:
                 if not temp_audio_path.exists():
                     continue
 
-                # Load audio data
                 audio_data: np.ndarray
                 sr: int
                 audio_data, sr = sf.read(temp_audio_path)
                 if sr != self.sample_rate:
-                    # Handle sample rate mismatch if needed
                     pass
                 audio_segments.append(audio_data)
 
-            # Concatenate all audio segments
             final_audio = np.concatenate(audio_segments)
-
-            # Save final audio file
             sf.write(output_path, final_audio, self.sample_rate)
 
         finally:
-            # Clean up temporary files
             for temp_file in temp_files_created:
                 if temp_file.exists():
                     temp_file.unlink()
 
     def split_text_into_segments(self, text: str) -> Generator[str, None, None]:
-        """Split text into segments using spacy for structure analysis and resource-segmentation for length control"""
         text = text.strip()
         if not text:
             return
 
         all_resources = []
         doc = self._nlp(text)
-        next_start_incision = 2  # First segment starts with boundary
+        next_start_incision = 2
 
         for sent in doc.sents:
             segment_text = sent.text.strip()
@@ -126,14 +105,14 @@ class ChapterTTS:
 
             resources[0].start_incision = next_start_incision
             resources[-1].end_incision = 2
-            next_start_incision = 2  # Update for next segment
+            next_start_incision = 2
 
             all_resources.extend(resources)
 
         if not all_resources:
             text_resource = Resource(
                 count=len(text),
-                start_incision=SENTENCE_LEVEL,  # Treat as segment boundary
+                start_incision=SENTENCE_LEVEL,
                 end_incision=SENTENCE_LEVEL,
                 payload=text
             )
@@ -142,7 +121,6 @@ class ChapterTTS:
         yield from self._split_by_resource_segmentation(all_resources)
 
     def _build_segment_internal_structure(self, sent: Span) -> Generator[Resource, None, None]:
-        """Build segment internal structure using Resource with low split priority"""
         current_fragment: list[str] = []
         for token in sent:
             if token.is_punct:
@@ -178,7 +156,6 @@ class ChapterTTS:
             yield fragment_resource
 
     def _split_by_resource_segmentation(self, resources: List[Resource]) -> Generator[str, None, None]:
-        """Split resources by length constraints using resource-segmentation"""
         max_byte_length = self.max_segment_length * 3
         groups = list(split(
             iter(resources),

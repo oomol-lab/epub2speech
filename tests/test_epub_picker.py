@@ -15,8 +15,8 @@ TEST_BOOKS = [
             "epub_version": "EPUB2",
             "meta_titles": [("The little prince", {})],
             "meta_creators": [
-                ("Antoine de Saint-Exupéry", {'{http://www.idpf.org/2007/opf}file-as': 'Saint-Exupéry, Antoine de & Howard, Richard', '{http://www.idpf.org/2007/opf}role': 'aut'}),
-                ("Richard Howard", {'{http://www.idpf.org/2007/opf}file-as': 'Saint-Exupéry, Antoine de & Howard, Richard', '{http://www.idpf.org/2007/opf}role': 'aut'})
+                ("Antoine de Saint-Exupéry", {"{http://www.idpf.org/2007/opf}file-as": "Saint-Exupéry, Antoine de & Howard, Richard", "{http://www.idpf.org/2007/opf}role": "aut"}),
+                ("Richard Howard", {"{http://www.idpf.org/2007/opf}file-as": "Saint-Exupéry, Antoine de & Howard, Richard", "{http://www.idpf.org/2007/opf}role": "aut"})
             ],
             "has_cover": True,
             "nav_items": [
@@ -97,7 +97,7 @@ class TestEpubPicker(unittest.TestCase):
     """Test cases for EpubPicker functionality"""
 
     def test_picker_functionality(self):
-        """Comprehensive test of EpubPicker functionality"""
+        """Test EpubPicker functionality"""
         print("🧪 Starting comprehensive EpubPicker functionality test...\n")
 
         for i, test_book in enumerate(TEST_BOOKS, 1):
@@ -107,16 +107,13 @@ class TestEpubPicker(unittest.TestCase):
             print(f"📚 Testing book {i}: {filename}")
 
             with self.subTest(book=filename):
-                # Create picker instance
                 epub_path = Path(__file__).parent / "assets" / filename
                 picker = EpubPicker(epub_path)
 
-                # 1. Test EPUB version detection
                 actual_version = picker.epub_version
                 self.assertEqual(actual_version, expected["epub_version"],
                                f"EPUB version mismatch: expected {expected['epub_version']}, actual {actual_version}")
 
-                # 2. Test metadata extraction
                 actual_titles = picker.title
                 self.assertGreater(len(actual_titles), 0, "Should have title metadata")
                 self.assertEqual(actual_titles[0], expected["meta_titles"][0][0],
@@ -127,12 +124,10 @@ class TestEpubPicker(unittest.TestCase):
                 self.assertEqual(actual_creators[0], expected["meta_creators"][0][0],
                                f"Creator mismatch: expected '{expected['meta_creators'][0][0]}', actual '{actual_creators[0]}'")
 
-                # 3. Test cover extraction
                 has_cover = picker.cover_bytes is not None
                 self.assertEqual(has_cover, expected["has_cover"],
                                f"Cover existence mismatch: expected {expected['has_cover']}, actual {has_cover}")
 
-                # 4. Test navigation items extraction
                 nav_items = list(picker.get_nav_items())
                 expected_nav_count = len(expected["nav_items"])
                 actual_nav_count = len(nav_items)
@@ -140,7 +135,6 @@ class TestEpubPicker(unittest.TestCase):
                 self.assertEqual(actual_nav_count, expected_nav_count,
                                f"Navigation items count mismatch: expected {expected_nav_count}, actual {actual_nav_count}")
 
-                # Verify each navigation item
                 for j, (actual_title, actual_href) in enumerate(nav_items):
                     expected_title, expected_href = expected["nav_items"][j]
                     self.assertEqual(actual_title, expected_title,
@@ -148,7 +142,6 @@ class TestEpubPicker(unittest.TestCase):
                     self.assertEqual(actual_href, expected_href,
                                    f"Navigation item {j+1} href mismatch: expected '{expected_href}', actual '{actual_href}'")
 
-                # 5. Test text extraction from first chapter
                 if nav_items:
                     first_href = nav_items[0][1]
                     text_content = picker.extract_text(first_href)

@@ -19,10 +19,8 @@ class EpubPicker:
             if item and item.file_name and item.file_name.endswith('.ncx'):
                 return (item, "EPUB2")
 
-        # ITEM_NAVIGATION 可能无法识别 EPUB3 的所有导航文件，需要全面扫描
         for item in self._book.get_items():
             if item and item.file_name and item.file_name.endswith('.xhtml'):
-                # 优先检查内容是否包含 epub:type="toc"（EPUB3 标准）
                 content = item.get_content()
                 if content:
                     if isinstance(content, bytes):
@@ -34,12 +32,12 @@ class EpubPicker:
     @property
     def epub_version(self) -> Literal["EPUB2", "EPUB3"] | None:
         return self._epub_version
-    
+
     @property
     def cover_bytes(self) -> bytes | None:
         cover_item = self._find_cover_item(self._book)
         if cover_item is not None:
-            content = cover_item.get_content() 
+            content = cover_item.get_content()
             if isinstance(content, bytes):
                 return content
         return None
@@ -73,7 +71,7 @@ class EpubPicker:
     @property
     def author(self) -> list[str]:
         return self._get_metadata_names("creator")
-    
+
     def _get_metadata_names(self, meta_name: str) -> list[str]:
         metadatas = self._book.get_metadata("DC", meta_name)
         return [str(meta[0]) for meta in metadatas if meta and meta[0]]
@@ -90,25 +88,19 @@ class EpubPicker:
             elif self._epub_version == "EPUB3":
                 yield from self._parse_epub3_nav(content)
         else:
-            # 没有找到导航文件，基于文件结构生成虚拟导航
             yield from self._generate_virtual_navigation()
 
     def extract_text(self, href: str) -> str:
-        """Extract plain text content from a chapter/document identified by href"""
-        # Remove anchor if present (e.g., "chapter1.xhtml#section1" -> "chapter1.xhtml")
         base_href = href.split('#')[0] if '#' in href else href
 
-        # Use get_item_with_href for direct lookup (much more efficient than iteration)
         doc_item = self._book.get_item_with_href(base_href)
 
         if doc_item is None:
-            # Fallback: try with original href in case of edge cases
             doc_item = self._book.get_item_with_href(href)
 
         if doc_item is None:
             return ""
 
-        # Get content from the document
         content = doc_item.get_content()
         if content is None:
             return ""
@@ -116,7 +108,6 @@ class EpubPicker:
         if isinstance(content, bytes):
             content = content.decode("utf-8", errors="ignore")
 
-        # Extract text using the unified function (handles both HTML parsing and regex fallback)
         return extract_text_from_html(content)
 
     def _parse_epub2_ncx(self, content: str) -> Generator[tuple[str, str], None, None]:

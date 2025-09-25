@@ -98,15 +98,10 @@ def compare_text_head_tail(extracted_text, expected_head, expected_tail, max_cha
     if not extracted_text:
         return False, False, "", ""
 
-    # 获取头部文本（最多 max_chars 字符）
     head_actual = extracted_text[:max_chars] if len(extracted_text) > max_chars else extracted_text
-    # 获取尾部文本（最多 max_chars 字符）
     tail_actual = extracted_text[-max_chars:] if len(extracted_text) > max_chars else extracted_text
 
-    # 比较头部（忽略大小写和空白差异）
     head_match = expected_head.lower() in head_actual.lower()
-
-    # 比较尾部（忽略大小写和空白差异）
     tail_match = expected_tail.lower() in tail_actual.lower()
 
     return head_match, tail_match, head_actual, tail_actual
@@ -129,11 +124,9 @@ class TestTextExtractor(unittest.TestCase):
 
             with self.subTest(book=filename):
                 try:
-                    # 创建 picker 实例
                     epub_path = Path(__file__).parent / "assets" / filename
                     picker = EpubPicker(epub_path)
 
-                    # 测试每个抽样章节
                     for i, chapter_data in enumerate(sample_chapters):
                         nav_title = chapter_data["nav_title"]
                         href = chapter_data["href"]
@@ -142,25 +135,21 @@ class TestTextExtractor(unittest.TestCase):
 
                         print(f"   📄 Testing chapter {i+1}: {nav_title}")
 
-                        # 提取文本
                         extracted_text = picker.extract_text(href)
 
                         if not extracted_text:
                             print(f"      ⚠️  No text extracted from {href}")
                             continue
 
-                        # 比较头部和尾部
                         head_match, tail_match, head_actual, tail_actual = compare_text_head_tail(
                             extracted_text, expected_head, expected_tail
                         )
 
-                        # 验证结果
                         self.assertTrue(head_match,
                                       f"Head mismatch for {nav_title}\nExpected: ...{expected_head[-50:]}...\nActual:   ...{head_actual[-50:]}...")
                         self.assertTrue(tail_match,
                                       f"Tail mismatch for {nav_title}\nExpected: ...{expected_tail[:50]}...\nActual:   ...{tail_actual[:50:]}...")
 
-                        # 显示成功信息
                         head_chars = min(200, len(head_actual))
                         print(f"      ✅ Head matches (first ~{head_chars} chars)")
                         tail_chars = min(200, len(tail_actual))
@@ -181,7 +170,6 @@ class TestTextExtractor(unittest.TestCase):
         """Generate test data from EPUB files - utility method"""
         print("🔧 Generating test data from EPUB files...\n")
 
-        # 使用现有的 TEST_BOOKS 来获取文件名列表，避免重复维护
         test_books = [book["filename"] for book in TEST_BOOKS]
         generated_data = []
 
@@ -199,7 +187,6 @@ class TestTextExtractor(unittest.TestCase):
 
                 print(f"   Found {len(nav_items)} chapters")
 
-                # 随机选择 2-3 个章节进行采样（如果章节足够多）
                 sample_size = min(3, len(nav_items))
                 if len(nav_items) > sample_size:
                     sample_items = random.sample(nav_items, sample_size)
@@ -217,7 +204,6 @@ class TestTextExtractor(unittest.TestCase):
                     extracted_text = picker.extract_text(href)
 
                     if extracted_text:
-                        # 获取头部和尾部文本
                         head_text = extracted_text[:200] if len(extracted_text) > 200 else extracted_text
                         tail_text = extracted_text[-200:] if len(extracted_text) > 200 else extracted_text
 
@@ -259,7 +245,6 @@ class TestTextExtractor(unittest.TestCase):
                 print("            {")
                 print(f'                "nav_title": "{chapter["nav_title"]}",')
                 print(f'                "href": "{chapter["href"]}",')
-                # 处理文本中的引号和特殊字符
                 head_escaped = chapter["expected_head"].replace('"', '\\"').replace('\n', '\\n')
                 tail_escaped = chapter["expected_tail"].replace('"', '\\"').replace('\n', '\\n')
                 print(f'                "expected_head": "{head_escaped}",')

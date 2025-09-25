@@ -24,15 +24,15 @@ class ConversionProgress:
 
 class _EpubToSpeechConverter:
     def __init__(
-            self,
-            voice: str,
-            epub_path: PathLike,
-            workspace: PathLike,
-            output_path: PathLike,
-            max_chapters: int | None,
-            tts_protocol: TextToSpeechProtocol,
-            progress_callback: Callable[[ConversionProgress], None] | None = None,
-        ):
+        self,
+        voice: str,
+        epub_path: PathLike,
+        workspace: PathLike,
+        output_path: PathLike,
+        max_chapters: int | None,
+        tts_protocol: TextToSpeechProtocol,
+        progress_callback: Callable[[ConversionProgress], None] | None = None,
+    ):
         self._voice: str = voice
         self._epub_path: Path = Path(epub_path)
         self._workspace_path: Path = Path(workspace)
@@ -91,11 +91,11 @@ class _EpubToSpeechConverter:
         return self._output_path
 
     def _convert_chapter_to_audio(
-            self,
-            chapter_title: str,
-            chapter_href: str,
-            chapter_index: int,
-        ) -> Path | None:
+        self,
+        chapter_title: str,
+        chapter_href: str,
+        chapter_index: int,
+    ) -> Path | None:
         chapter_prefix = f"chapter_{(chapter_index + 1):03d}_{self._sanitize_filename(chapter_title)}"
         chapter_path = self._workspace_path / chapter_prefix
         audio_path = chapter_path / f"{chapter_prefix}.wav"
@@ -114,18 +114,19 @@ class _EpubToSpeechConverter:
         return audio_path
 
     def _sanitize_filename(self, filename: str) -> str:
-        sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        sanitized = re.sub(r'[<>:"/\|?*]', '_', filename)
         return sanitized[:50]
 
+
 def convert_epub_to_m4b(
-        epub_path: PathLike,
-        workspace: PathLike,
-        output_path: PathLike,
-        tts_protocol: TextToSpeechProtocol,
-        voice: str,
-        max_chapters: int | None = None,
-        progress_callback: Callable[[ConversionProgress], None] | None = None,
-    ) -> Path | None:
+    epub_path: PathLike,
+    workspace: PathLike,
+    output_path: PathLike,
+    tts_protocol: TextToSpeechProtocol,
+    voice: str,
+    max_chapters: int | None = None,
+    progress_callback: Callable[[ConversionProgress], None] | None = None,
+) -> Path | None:
     converter = _EpubToSpeechConverter(
         epub_path=epub_path,
         workspace=workspace,
