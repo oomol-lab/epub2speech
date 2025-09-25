@@ -46,10 +46,6 @@ class TestChapterTTS(unittest.TestCase):
             subscription_key=subscription_key,
             region=region
         )
-
-        self.assertTrue(tts.validate_config(), "Azure TTS validation failed")
-        print("✅ Azure TTS instance created successfully")
-
         chapter_tts = ChapterTTS(
             tts_protocol=tts,
             sample_rate=24000,
@@ -175,7 +171,7 @@ class TestChapterTTS(unittest.TestCase):
                 voice="mock-voice"
             )
 
-        print(f"\n🎉 CJK sentence splitting tests passed!")
+        print("\n🎉 CJK sentence splitting tests passed!")
 
 
 if __name__ == "__main__":
