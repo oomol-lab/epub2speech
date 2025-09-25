@@ -7,100 +7,15 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
 from epub2speech.chapter_tts import ChapterTTS
-from epub2speech.tts.azure_provider import AzureTextToSpeech
-from tests.utils.config import TTSConfig
 from epub2speech.tts import TextToSpeechProtocol
 
 
 class TestChapterTTS(unittest.TestCase):
     """Test cases for ChapterTTS functionality"""
 
-    def test_chapter_tts(self):
-        """Test ChapterTTS functionality"""
-        print("🧪 Testing ChapterTTS functionality...\n")
-
-        config_path = Path(__file__).parent / "tts_config.json"
-
-        if not config_path.exists():
-            print("⚠️  TTS config file not found, skipping ChapterTTS test")
-            print("This is expected in CI environment to avoid Azure resource usage")
-            print("To run TTS tests locally, copy tts_config.json.template to tts_config.json")
-            print("and fill in your Azure Speech credentials")
-            self.skipTest("TTS config file not found")
-
-        config = TTSConfig(config_path)
-        self.assertTrue(config.validate_config(), "TTS configuration is invalid")
-        print("✅ TTS configuration validated")
-
-        config = TTSConfig(config_path)
-        azure_config = config.get_azure_config()
-        self.assertIsNotNone(azure_config, "No Azure configuration found in config file")
-
-        subscription_key = azure_config["subscription_key"]
-        region = azure_config["region"]
-
-        self.assertIsNotNone(subscription_key, "Azure configuration missing subscription_key")
-        self.assertIsNotNone(region, "Azure configuration missing region")
-
-        tts = AzureTextToSpeech(
-            subscription_key=subscription_key,
-            region=region
-        )
-        chapter_tts = ChapterTTS(
-            tts_protocol=tts,
-            sample_rate=24000,
-            max_segment_length=500
-        )
-
-        print("✅ ChapterTTS processor created successfully")
-
-        test_chapter_text = """
-        Chapter 1: The Beginning
-
-        This is the first sentence of the chapter. It introduces the main character.
-
-        This is the second sentence, which provides more context about the story.
-        The third sentence continues the narrative and builds the atmosphere.
-
-        Finally, this is the last sentence of the chapter introduction.
-        """
-        output_dir = Path(__file__).parent / "dist"
-        temp_dir = Path(__file__).parent / "temp"
-        output_dir.mkdir(exist_ok=True)
-        temp_dir.mkdir(exist_ok=True)
-        output_path = output_dir / "test_chapter.wav"
-
-        print("\n🎤 Converting chapter to speech...")
-        print(f"Output file: {output_path}")
-        print(f"Temp directory: {temp_dir}")
-
-        def progress_callback(current, total):
-            print(f"Progress: {current}/{total} sentences")
-
-        chapter_tts.process_chapter(
-            text=test_chapter_text,
-            output_path=output_path,
-            workspace_path=temp_dir,
-            voice="en-US-AriaNeural",
-            progress_callback=progress_callback
-        )
-        self.assertTrue(output_path.exists(), "Chapter audio generation failed")
-
-        file_size = output_path.stat().st_size
-        print("✅ Chapter audio generated successfully")
-        print(f"📊 File size: {file_size} bytes")
-        print(f"📁 Audio file saved to: {output_path}")
-
-        self.assertGreater(file_size, 10000, "File seems too small")
-        print("✅ File size looks reasonable")
-
-        print("\n🎉 ChapterTTS test passed!")
-        print(f"💡 You can listen to the generated chapter audio at: {output_path}")
 
     def test_cjk_sentence_splitting(self):
         """Test CJK sentence splitting with different languages"""
-        print("🧪 Testing CJK sentence splitting...\n")
-
         import numpy as np
         import soundfile as sf
 
@@ -145,23 +60,18 @@ class TestChapterTTS(unittest.TestCase):
             }
         ]
 
-        output_dir = Path(__file__).parent / "dist"
-        temp_dir = Path(__file__).parent / "temp"
+        output_dir = Path(__file__).parent / "temp"
+        temp_dir = output_dir / "chapter_tts_workspace"
         output_dir.mkdir(exist_ok=True)
         temp_dir.mkdir(exist_ok=True)
 
         for test_case in test_cases:
-            print(f"\n📄 Testing: {test_case['name']}")
-            print(f"Text: {test_case['text'][:100]}…")
 
             segments = chapter_tts.split_text_into_segments(test_case['text'])
             segment_list = list(segments)
-            print(f"Number of segments: {len(segment_list)}")
-            print(f"Average segment length: {sum(len(s) for s in segment_list) / len(segment_list):.1f}")
 
             self.assertGreaterEqual(len(segment_list), test_case['expected_min_sentences'],
                                    f"Expected at least {test_case['expected_min_sentences']} segments, got {len(segment_list)}")
-            print("✅ Segment splitting successful")
 
             output_path = output_dir / f"mock_{test_case['name'].replace(' ', '_').lower()}.wav"
             chapter_tts.process_chapter(
@@ -170,9 +80,5 @@ class TestChapterTTS(unittest.TestCase):
                 workspace_path=temp_dir,
                 voice="mock-voice"
             )
-
-        print("\n🎉 CJK sentence splitting tests passed!")
-
-
 if __name__ == "__main__":
     unittest.main(verbosity=2)

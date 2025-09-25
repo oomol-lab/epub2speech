@@ -1,8 +1,10 @@
 import uuid
 import numpy as np
 import soundfile as sf
+
 from pathlib import Path
 from typing import List, Optional, Callable, Generator
+from scipy.signal import resample
 from spacy.lang.xx import MultiLanguage
 from spacy.language import Language
 from spacy.tokens import Span
@@ -17,12 +19,10 @@ class ChapterTTS:
     def __init__(
         self,
         tts_protocol: TextToSpeechProtocol,
-        sample_rate: int = 24000,
         max_segment_length: int = 500,
         language_model: Optional[str] = None
     ):
         self.tts_protocol = tts_protocol
-        self.sample_rate = sample_rate
         self.max_segment_length = max_segment_length
         self._nlp = self._load_language_model(language_model)
 
@@ -51,9 +51,9 @@ class ChapterTTS:
         if not segments:
             return
 
-        audio_segments = []
-        temp_files_created = []
+        temp_files_created: list[Path] = []
         try:
+            audio_segments: list[tuple[np.ndarray, int]] = []
             for i, segment in enumerate(segments):
                 if progress_callback:
                     progress_callback(i + 1, len(segments))
@@ -71,14 +71,23 @@ class ChapterTTS:
                     continue
 
                 audio_data: np.ndarray
-                sr: int
-                audio_data, sr = sf.read(temp_audio_path)
-                if sr != self.sample_rate:
-                    pass
-                audio_segments.append(audio_data)
+                sample_rate: int
+                audio_data, sample_rate = sf.read(temp_audio_path)
+                audio_segments.append((audio_data, sample_rate))
 
-            final_audio = np.concatenate(audio_segments)
-            sf.write(output_path, final_audio, self.sample_rate)
+            if audio_segments:
+                _, first_sample_rate = audio_segments[0]
+                resampled_segments = []
+                for audio_data, sample_rate in audio_segments:
+                    if sample_rate != first_sample_rate:
+                        resampled_length = int(len(audio_data) * first_sample_rate / sample_rate)
+                        resampled_audio = resample(audio_data, resampled_length)
+                        resampled_segments.append(resampled_audio)
+                    else:
+                        resampled_segments.append(audio_data)
+
+                final_audio = np.concatenate(resampled_segments)
+                sf.write(output_path, final_audio, first_sample_rate)
 
         finally:
             for temp_file in temp_files_created:
