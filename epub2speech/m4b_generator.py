@@ -2,7 +2,6 @@
 import subprocess
 import shutil
 from pathlib import Path
-from typing import List, Optional, Dict, Any
 
 
 class ChapterInfo:
@@ -26,18 +25,57 @@ class M4BGenerator:
         if not shutil.which(self.ffprobe_path):
             raise RuntimeError(f"FFprobe not found at {self.ffprobe_path}. Please install FFmpeg.")
 
-    def probe_duration(self, file_path: Path) -> float:
-        args = [
-            self.ffprobe_path,
-            "-i", str(file_path),
-            "-show_entries", "format=duration",
-            "-v", "quiet",
-            "-of", "default=noprint_wrappers=1:nokey=1"
-        ]
-        result = self._run_command(args, f"Failed to probe duration for {file_path}")
-        return float(result.stdout.strip())
+    def generate_m4b(
+        self,
+        title: str,
+        chapters: list[ChapterInfo],
+        output_path: Path,
+        workspace_path: Path,
+        cover_path: Path | None = None,
+        audio_bitrate: str = "64k"
+    ) -> Path:
+        output_path = Path(output_path)
+        output_dir = output_path.parent
 
-    def create_chapter_metadata(self, chapters: List[ChapterInfo], work_dir: Path) -> Path:
+        workspace_path.mkdir(parents=True, exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        for chapter in chapters:
+            if not chapter.audio_file.exists():
+                raise FileNotFoundError(f"Audio file not found: {chapter.audio_file}")
+
+        metadata_file = self._create_chapter_metadata(chapters, workspace_path)
+        concat_audio = self._concat_audio_files(chapters, workspace_path, title)
+        cover_args: list[str] = []
+
+        if cover_path and cover_path.exists():
+            cover_args = [
+                "-i", str(cover_path),
+                "-map", "2:v",
+                "-disposition:v", "attached_pic",
+                "-c:v", "copy",
+            ]
+        ffmpeg_cmd = [
+            self.ffmpeg_path,
+            "-y",
+            "-i", str(concat_audio),
+            "-i", str(metadata_file),
+        ]
+        if cover_args:
+            ffmpeg_cmd.extend(cover_args)
+
+        ffmpeg_cmd.extend([
+            "-map", "0:a",
+            "-c:a", "aac",
+            "-b:a", audio_bitrate,
+            "-map_metadata", "1",
+            "-f", "mp4",
+            str(output_path)
+        ])
+        self._run_command(ffmpeg_cmd, "FFmpeg failed to create M4B")
+        return output_path
+
+    def _create_chapter_metadata(self, chapters: list[ChapterInfo], work_dir: Path) -> Path:
         metadata_file = work_dir / "chapters.txt"
 
         with open(metadata_file, "w", encoding="utf-8") as f:
@@ -45,7 +83,7 @@ class M4BGenerator:
 
             start_time = 0
             for chapter in chapters:
-                duration = self.probe_duration(chapter.audio_file)
+                duration = self._probe_duration(chapter.audio_file)
                 end_time = start_time + int(duration * 1000)
 
                 f.write("[CHAPTER]\n")
@@ -59,7 +97,18 @@ class M4BGenerator:
 
         return metadata_file
 
-    def concat_audio_files(self, chapters: List[ChapterInfo], work_dir: Path, book_title: str) -> Path:
+    def _probe_duration(self, file_path: Path) -> float:
+        args = [
+            self.ffprobe_path,
+            "-i", str(file_path),
+            "-show_entries", "format=duration",
+            "-v", "quiet",
+            "-of", "default=noprint_wrappers=1:nokey=1"
+        ]
+        result = self._run_command(args, f"Failed to probe duration for {file_path}")
+        return float(result.stdout.strip())
+
+    def _concat_audio_files(self, chapters: list[ChapterInfo], work_dir: Path, book_title: str) -> Path:
         work_dir.mkdir(parents=True, exist_ok=True)
 
         file_list_path = work_dir / f"{book_title}_concat_list.txt"
@@ -79,64 +128,10 @@ class M4BGenerator:
             "-c", "copy",
             str(concat_audio_path)
         ]
-
         self._run_command(concat_cmd, "Failed to concatenate audio files")
         return concat_audio_path
 
-    def generate_m4b(
-        self,
-        title: str,
-        chapters: List[ChapterInfo],
-        output_path: Path,
-        workspace_path: Path,
-        cover_path: Path | None = None,
-        audio_bitrate: str = "64k"
-    ) -> Path:
-        output_path = Path(output_path)
-        output_dir = output_path.parent
-
-        workspace_path.mkdir(parents=True, exist_ok=True)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        for chapter in chapters:
-            if not chapter.audio_file.exists():
-                raise FileNotFoundError(f"Audio file not found: {chapter.audio_file}")
-
-        metadata_file = self.create_chapter_metadata(chapters, workspace_path)
-        concat_audio = self.concat_audio_files(chapters, workspace_path, title)
-
-        cover_args = []
-        if cover_path and cover_path.exists():
-            cover_args = [
-                "-i", str(cover_path),
-                "-map", "2:v",
-                "-disposition:v", "attached_pic",
-                "-c:v", "copy",
-            ]
-
-        ffmpeg_cmd = [
-            self.ffmpeg_path,
-            "-y",
-            "-i", str(concat_audio),
-            "-i", str(metadata_file),
-        ]
-
-        if cover_args:
-            ffmpeg_cmd.extend(cover_args)
-
-        ffmpeg_cmd.extend([
-            "-map", "0:a",
-            "-c:a", "aac",
-            "-b:a", audio_bitrate,
-            "-map_metadata", "1",
-            "-f", "mp4",
-            str(output_path)
-        ])
-
-        self._run_command(ffmpeg_cmd, "FFmpeg failed to create M4B")
-        return output_path
-
-    def _run_command(self, args: List[str], error_message: str) -> subprocess.CompletedProcess:
+    def _run_command(self, args: list[str], error_message: str) -> subprocess.CompletedProcess:
         """Run subprocess command with proper error handling
 
         We explicitly handle exit codes ourselves rather than using subprocess.run's check parameter
@@ -147,32 +142,3 @@ class M4BGenerator:
             stderr_content = result.stderr.strip() if result.stderr else "No stderr output"
             raise RuntimeError(f"{error_message}: {stderr_content}")
         return result
-
-
-def create_m4b_from_chapters(
-    title: str,
-    chapters: List[Dict[str, Any]],
-    output_path: str,
-    workspace_path: Path,
-    cover_image: Optional[str] = None,
-    audio_bitrate: str = "64k"
-) -> str:
-    generator = M4BGenerator()
-
-    chapter_infos = []
-    for chapter_data in chapters:
-        chapter_info = ChapterInfo(
-            title=chapter_data["title"],
-            audio_file=Path(chapter_data["audio_file"])
-        )
-        chapter_infos.append(chapter_info)
-
-    result_path = generator.generate_m4b(
-        title=title,
-        chapters=chapter_infos,
-        output_path=Path(output_path),
-        workspace_path=workspace_path,
-        cover_path=Path(cover_image) if cover_image else None,
-        audio_bitrate=audio_bitrate
-    )
-    return str(result_path)
