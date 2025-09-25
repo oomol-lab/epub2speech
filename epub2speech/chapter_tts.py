@@ -4,6 +4,7 @@ import soundfile as sf
 
 from pathlib import Path
 from typing import List, Optional, Callable, Generator
+from scipy.signal import resample
 from spacy.lang.xx import MultiLanguage
 from spacy.language import Language
 from spacy.tokens import Span
@@ -50,9 +51,9 @@ class ChapterTTS:
         if not segments:
             return
 
-        audio_segments = []
-        temp_files_created = []
+        temp_files_created: list[Path] = []
         try:
+            audio_segments: list[tuple[np.ndarray, int]] = []
             for i, segment in enumerate(segments):
                 if progress_callback:
                     progress_callback(i + 1, len(segments))
@@ -70,15 +71,23 @@ class ChapterTTS:
                     continue
 
                 audio_data: np.ndarray
-                sr: int
-                audio_data, sr = sf.read(temp_audio_path)
-                audio_segments.append((audio_data, sr))  # 保存音频数据和采样率
+                sample_rate: int
+                audio_data, sample_rate = sf.read(temp_audio_path)
+                audio_segments.append((audio_data, sample_rate))
 
-            # 使用第一个分段的采样率作为最终采样率
             if audio_segments:
-                final_audio = np.concatenate([data for data, sr in audio_segments])
-                final_sr = audio_segments[0][1]  # 使用第一个分段的采样率
-                sf.write(output_path, final_audio, final_sr)
+                _, first_sample_rate = audio_segments[0]
+                resampled_segments = []
+                for audio_data, sample_rate in audio_segments:
+                    if sample_rate != first_sample_rate:
+                        resampled_length = int(len(audio_data) * first_sample_rate / sample_rate)
+                        resampled_audio = resample(audio_data, resampled_length)
+                        resampled_segments.append(resampled_audio)
+                    else:
+                        resampled_segments.append(audio_data)
+
+                final_audio = np.concatenate(resampled_segments)
+                sf.write(output_path, final_audio, first_sample_rate)
 
         finally:
             for temp_file in temp_files_created:
