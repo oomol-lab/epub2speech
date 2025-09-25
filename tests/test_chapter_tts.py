@@ -80,5 +80,81 @@ class TestChapterTTS(unittest.TestCase):
                 workspace_path=temp_dir,
                 voice="mock-voice"
             )
+
+        # Clean up workspace files after all tests
+        import shutil
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir)
+
+    def test_different_sample_rates_resampling(self):
+        """Test that audio segments with different sample rates are properly resampled"""
+        import numpy as np
+        import soundfile as sf
+
+        class MixedSampleRateTTSProtocol(TextToSpeechProtocol):
+            """Mock TTS protocol that generates audio with different sample rates"""
+
+            def __init__(self):
+                self.segment_count = 0
+
+            def convert_text_to_audio(self, text: str, output_path: Path, voice: str | None = None) -> None:
+                _ = text, voice
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # Alternate between different sample rates to simulate real-world scenario
+                if self.segment_count % 2 == 0:
+                    sample_rate = 16000  # 16kHz
+                    audio_data = np.sin(2 * np.pi * 440 * np.linspace(0, 1, 16000))  # 1 second of 440Hz tone
+                else:
+                    sample_rate = 48000  # 48kHz
+                    audio_data = np.sin(2 * np.pi * 880 * np.linspace(0, 1, 48000))  # 1 second of 880Hz tone
+
+                sf.write(output_path, audio_data, sample_rate)
+                self.segment_count += 1
+
+            def get_available_voices(self) -> list[str]:
+                return ["mixed-rate-voice"]
+
+            def validate_config(self) -> bool:
+                return True
+
+        mock_tts = MixedSampleRateTTSProtocol()
+        chapter_tts = ChapterTTS(tts_protocol=mock_tts)
+
+        # Test text that should be split into multiple segments
+        test_text = "This is the first sentence. This is the second sentence with different content. This is the third sentence. This is the fourth sentence."
+
+        output_dir = Path(__file__).parent / "temp"
+        temp_dir = output_dir / "chapter_tts_workspace_mixed_rates"
+        output_dir.mkdir(exist_ok=True)
+        temp_dir.mkdir(exist_ok=True)
+
+        output_path = output_dir / "mixed_sample_rates_test.wav"
+
+        try:
+            # Process chapter - this should trigger resampling since segments have different rates
+            chapter_tts.process_chapter(
+                text=test_text,
+                output_path=output_path,
+                workspace_path=temp_dir,
+                voice="mixed-rate-voice"
+            )
+
+            # Verify the output file was created
+            self.assertTrue(output_path.exists(), "Output audio file should be created")
+
+            # Verify the output has consistent sample rate (should match first segment)
+            audio_data, sample_rate = sf.read(output_path)
+            self.assertEqual(sample_rate, 16000, "Final sample rate should match the first segment's rate")
+
+            # Verify audio data is not empty
+            self.assertGreater(len(audio_data), 0, "Output audio should not be empty")
+        finally:
+            # Clean up files
+            if output_path.exists():
+                output_path.unlink()
+            import shutil
+            if temp_dir.exists():
+                shutil.rmtree(temp_dir)
 if __name__ == "__main__":
     unittest.main(verbosity=2)

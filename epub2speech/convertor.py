@@ -86,6 +86,7 @@ class _EpubToSpeechConverter:
             title=self._epub_picker.title[0] if self._epub_picker.title else "Unknown",
             chapters=chapter_infos,
             output_path=self._output_path,
+            workspace_path=self._workspace_path,
             cover_path=cover_path
         )
         return self._output_path

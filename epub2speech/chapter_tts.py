@@ -51,48 +51,40 @@ class ChapterTTS:
         if not segments:
             return
 
-        temp_files_created: list[Path] = []
-        try:
-            audio_segments: list[tuple[np.ndarray, int]] = []
-            for i, segment in enumerate(segments):
-                if progress_callback:
-                    progress_callback(i + 1, len(segments))
+        audio_segments: list[tuple[np.ndarray, int]] = []
+        for i, segment in enumerate(segments):
+            if progress_callback:
+                progress_callback(i + 1, len(segments))
 
-                session_id = str(uuid.uuid4())[:8]
-                temp_audio_path = workspace_path / f"{session_id}_segment_{i:04d}.wav"
-                temp_files_created.append(temp_audio_path)
+            session_id = str(uuid.uuid4())[:8]
+            temp_audio_path = workspace_path / f"{session_id}_segment_{i:04d}.wav"
 
-                self.tts_protocol.convert_text_to_audio(
-                    text=segment,
-                    output_path=temp_audio_path,
-                    voice=voice
-                )
-                if not temp_audio_path.exists():
-                    continue
+            self.tts_protocol.convert_text_to_audio(
+                text=segment,
+                output_path=temp_audio_path,
+                voice=voice
+            )
+            if not temp_audio_path.exists():
+                continue
 
-                audio_data: np.ndarray
-                sample_rate: int
-                audio_data, sample_rate = sf.read(temp_audio_path)
-                audio_segments.append((audio_data, sample_rate))
+            audio_data: np.ndarray
+            sample_rate: int
+            audio_data, sample_rate = sf.read(temp_audio_path)
+            audio_segments.append((audio_data, sample_rate))
 
-            if audio_segments:
-                _, first_sample_rate = audio_segments[0]
-                resampled_segments = []
-                for audio_data, sample_rate in audio_segments:
-                    if sample_rate != first_sample_rate:
-                        resampled_length = int(len(audio_data) * first_sample_rate / sample_rate)
-                        resampled_audio = resample(audio_data, resampled_length)
-                        resampled_segments.append(resampled_audio)
-                    else:
-                        resampled_segments.append(audio_data)
+        if audio_segments:
+            _, first_sample_rate = audio_segments[0]
+            resampled_segments = []
+            for audio_data, sample_rate in audio_segments:
+                if sample_rate != first_sample_rate:
+                    resampled_length = int(len(audio_data) * first_sample_rate / sample_rate)
+                    resampled_audio = resample(audio_data, resampled_length)
+                    resampled_segments.append(resampled_audio)
+                else:
+                    resampled_segments.append(audio_data)
 
-                final_audio = np.concatenate(resampled_segments)
-                sf.write(output_path, final_audio, first_sample_rate)
-
-        finally:
-            for temp_file in temp_files_created:
-                if temp_file.exists():
-                    temp_file.unlink()
+            final_audio = np.concatenate(resampled_segments)
+            sf.write(output_path, final_audio, first_sample_rate)
 
     def split_text_into_segments(self, text: str) -> Generator[str, None, None]:
         text = text.strip()

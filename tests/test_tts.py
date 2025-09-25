@@ -28,7 +28,7 @@ class TestTTSIntegration(unittest.TestCase):
             region=azure_config["region"]
         )
 
-        self.output_dir = Path(__file__).parent / "dist"
+        self.output_dir = Path(__file__).parent / "temp" / "tts_outputs"
         self.output_dir.mkdir(exist_ok=True)
 
         for old_file in self.output_dir.glob("*.wav"):
