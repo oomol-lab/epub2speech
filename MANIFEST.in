@@ -1,0 +1,29 @@
+# Include the README
+include README.md
+
+# Include the license file
+include LICENSE
+
+# Include configuration files
+include pyproject.toml
+include MANIFEST.in
+
+# Include test files (optional, but good for source distribution)
+recursive-include tests *.py *.json *.md
+prune tests/dist
+prune tests/temp
+
+# Include documentation
+include CONVERTOR_USAGE.md
+
+# Exclude build artifacts
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude *.so
+global-exclude .DS_Store
+
+# Exclude development files
+global-exclude .git*
+global-exclude .vscode
+global-exclude .idea
+global-exclude *.log
