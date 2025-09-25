@@ -1,6 +1,7 @@
 import uuid
 import numpy as np
 import soundfile as sf
+
 from pathlib import Path
 from typing import List, Optional, Callable, Generator
 from spacy.lang.xx import MultiLanguage
@@ -17,12 +18,10 @@ class ChapterTTS:
     def __init__(
         self,
         tts_protocol: TextToSpeechProtocol,
-        sample_rate: int = 24000,
         max_segment_length: int = 500,
         language_model: Optional[str] = None
     ):
         self.tts_protocol = tts_protocol
-        self.sample_rate = sample_rate
         self.max_segment_length = max_segment_length
         self._nlp = self._load_language_model(language_model)
 
@@ -73,12 +72,13 @@ class ChapterTTS:
                 audio_data: np.ndarray
                 sr: int
                 audio_data, sr = sf.read(temp_audio_path)
-                if sr != self.sample_rate:
-                    pass
-                audio_segments.append(audio_data)
+                audio_segments.append((audio_data, sr))  # 保存音频数据和采样率
 
-            final_audio = np.concatenate(audio_segments)
-            sf.write(output_path, final_audio, self.sample_rate)
+            # 使用第一个分段的采样率作为最终采样率
+            if audio_segments:
+                final_audio = np.concatenate([data for data, sr in audio_segments])
+                final_sr = audio_segments[0][1]  # 使用第一个分段的采样率
+                sf.write(output_path, final_audio, final_sr)
 
         finally:
             for temp_file in temp_files_created:
