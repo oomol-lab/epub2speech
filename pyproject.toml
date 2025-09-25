@@ -6,7 +6,6 @@ authors = [
     {name = "TaoZeyu",email = "i@taozeyu.com"}
 ]
 license = {text = "MIT"}
-readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "ebooklib (>=0.19,<0.20)",
@@ -16,6 +15,9 @@ dependencies = [
     "soundfile (>=0.13.1,<0.14.0)",
     "resource-segmentation (==0.0.5)",
 ]
+
+[project.scripts]
+epub2speech = "epub2speech.cli:main"
 
 
 [build-system]

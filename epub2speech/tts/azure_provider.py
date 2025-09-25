@@ -54,7 +54,7 @@ class AzureTextToSpeech(TextToSpeechProtocol):
         text: str,
         output_path: Path,
         voice: str | None = None
-    ) -> bool:
+    ):
         """
         Convert text to audio file using Azure Speech Service
 
@@ -78,46 +78,41 @@ class AzureTextToSpeech(TextToSpeechProtocol):
         # Use default voice if not specified
         voice = voice or self.default_voice
 
-        try:
-            # Configure audio output
-            audio_config = speechsdk.audio.AudioOutputConfig(filename=str(output_path))
+        # Configure audio output
+        audio_config = speechsdk.audio.AudioOutputConfig(filename=str(output_path))
 
-            # Configure speech synthesis
-            speech_synthesizer = speechsdk.SpeechSynthesizer(
-                speech_config=self._speech_config,
-                audio_config=audio_config
-            )
+        # Configure speech synthesis
+        speech_synthesizer = speechsdk.SpeechSynthesizer(
+            speech_config=self._speech_config,
+            audio_config=audio_config
+        )
 
-            # Configure voice
-            self._speech_config.speech_synthesis_voice_name = voice
+        # Configure voice
+        self._speech_config.speech_synthesis_voice_name = voice
 
-            # Convert text to speech using plain text
-            result = speech_synthesizer.speak_text_async(text).get()
+        # Convert text to speech using plain text
+        result = speech_synthesizer.speak_text_async(text).get()
 
-            if result and result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+        if result and result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
 
-                # 验证生成的音频文件不是静音
-                if output_path.exists():
-                    audio_data, _ = sf.read(output_path)
-                    if len(audio_data) > 0:
-                        audio_range = np.max(audio_data) - np.min(audio_data)
-                        is_silent = np.allclose(audio_data, 0) or audio_range < 0.001
-                        if is_silent:
-                            raise RuntimeError(f"Generated audio file is silent! Audio range: [{np.min(audio_data)}, {np.max(audio_data)}]. This may indicate Azure TTS configuration or language support issue")
-                        # Audio validation passed, continue normally
-                    else:
-                        raise RuntimeError("Generated audio file is empty (0 samples)")
+            # 验证生成的音频文件不是静音
+            if output_path.exists():
+                audio_data, _ = sf.read(output_path)
+                if len(audio_data) > 0:
+                    audio_range = np.max(audio_data) - np.min(audio_data)
+                    is_silent = np.allclose(audio_data, 0) or audio_range < 0.001
+                    if is_silent:
+                        raise RuntimeError(f"Generated audio file is silent! Audio range: [{np.min(audio_data)}, {np.max(audio_data)}]. This may indicate Azure TTS configuration or language support issue")
+                    # Audio validation passed, continue normally
+                else:
+                    raise RuntimeError("Generated audio file is empty (0 samples)")
 
-                return True
-            elif result and result.reason == speechsdk.ResultReason.Canceled:
-                cancellation_details = result.cancellation_details
-                raise RuntimeError(f"Speech synthesis canceled: {cancellation_details.reason}. Error details: {cancellation_details.error_details if cancellation_details.error_details else 'None'}")
-            else:
-                error_reason = result.reason if result else "Unknown error"
-                raise RuntimeError(f"Speech synthesis failed: {error_reason}")
-
-        except Exception as e:
-            raise RuntimeError(f"Exception during speech synthesis: {e}") from e
+        elif result and result.reason == speechsdk.ResultReason.Canceled:
+            cancellation_details = result.cancellation_details
+            raise RuntimeError(f"Speech synthesis canceled: {cancellation_details.reason}. Error details: {cancellation_details.error_details if cancellation_details.error_details else 'None'}")
+        else:
+            error_reason = result.reason if result else "Unknown error"
+            raise RuntimeError(f"Speech synthesis failed: {error_reason}")
 
     def get_available_voices(self) -> list[str]:
         """

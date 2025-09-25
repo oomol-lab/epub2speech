@@ -55,7 +55,7 @@ class _EpubToSpeechConverter:
 
         for i, (chapter_title, chapter_href) in enumerate(chapters):
             progress = ConversionProgress(
-                current_chapter=i + 1,
+                current_chapter=i,
                 total_chapters=len(chapters),
                 chapter_title=chapter_title
             )
@@ -117,28 +117,15 @@ class _EpubToSpeechConverter:
         sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
         return sanitized[:50]
 
-def convert_epub_to_m4b(epub_path: PathLike,
-                        workspace: PathLike,
-                        output_path: PathLike,
-                        tts_protocol: TextToSpeechProtocol,
-                        voice: str,
-                        max_chapters: int | None = None,
-                        progress_callback: Callable[[ConversionProgress], None] | None = None) -> Path | None:
-    """
-    便捷的函数接口，将EPUB转换为M4B
-
-    Args:
-        epub_path: EPUB文件路径
-        workspace: 工作目录
-        output_path: 输出M4B文件路径
-        tts_protocol: TTS协议实例
-        max_chapters: 最大章节数（可选）
-        voice: TTS语音（可选）
-        progress_callback: 进度回调函数（可选）
-
-    Returns:
-        生成的M4B文件路径
-    """
+def convert_epub_to_m4b(
+        epub_path: PathLike,
+        workspace: PathLike,
+        output_path: PathLike,
+        tts_protocol: TextToSpeechProtocol,
+        voice: str,
+        max_chapters: int | None = None,
+        progress_callback: Callable[[ConversionProgress], None] | None = None,
+    ) -> Path | None:
     converter = _EpubToSpeechConverter(
         epub_path=epub_path,
         workspace=workspace,
