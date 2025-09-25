@@ -13,63 +13,52 @@ from tests.utils.config import TTSConfig
 class TestTTSIntegration(unittest.TestCase):
     """Test cases for TTS integration"""
 
-    def test_tts_integration(self):
-        """Test TTS integration with configuration"""
-        print("🧪 Testing TTS integration (smoke test)...\n")
-
-        config_path = Path(__file__).parent / "tts_config.json"
-
-        if not config_path.exists():
-            print("⚠️  TTS config file not found, skipping Azure TTS test")
-            print("This is expected in CI environment to avoid Azure resource usage")
-            print("To run TTS tests locally, copy tts_config.json.template to tts_config.json")
-            print("and fill in your Azure Speech credentials")
+    def setUp(self):
+        """Set up test configuration"""
+        self.config_path = Path(__file__).parent / "tts_config.json"
+        if not self.config_path.exists():
             self.skipTest("TTS config file not found")
 
-        config = TTSConfig(config_path)
-        self.assertTrue(config.validate_config(), "TTS configuration is invalid")
-        print("✅ TTS configuration validated")
+        config = TTSConfig(self.config_path)
+        self.assertTrue(config.validate_config())
 
-        config = TTSConfig(config_path)
         azure_config = config.get_azure_config()
-        self.assertIsNotNone(azure_config, "No Azure configuration found in config file")
-
-        tts = AzureTextToSpeech(
+        self.tts = AzureTextToSpeech(
             subscription_key=azure_config["subscription_key"],
-            region=azure_config["region"],
+            region=azure_config["region"]
         )
-        self.assertTrue(tts.validate_config(), "Azure TTS validation failed")
-        print("✅ Azure TTS instance created successfully")
 
-        output_dir = Path(__file__).parent / "dist"
-        output_dir.mkdir(exist_ok=True)
+        self.output_dir = Path(__file__).parent / "dist"
+        self.output_dir.mkdir(exist_ok=True)
 
-        for old_file in output_dir.glob("*.wav"):
+        for old_file in self.output_dir.glob("*.wav"):
             old_file.unlink()
 
-        test_text = "Hello, this is a smoke test of the text to speech system."
-        timestamp = "test"
-        output_path = output_dir / f"tts_{timestamp}.wav"
+    def test_voice_parameter_functionality(self):
+        """Test voice parameter with different languages and voices"""
+        test_cases = [
+            {
+                "voice": "zh-CN-XiaochenNeural",
+                "text": "这是一个中文语音测试",
+                "filename": "chinese_test"
+            },
+            {
+                "voice": "en-US-BrianNeural",
+                "text": "This is an English voice test",
+                "filename": "english_test"
+            }
+        ]
+        for case in test_cases:
+            output_path = self.output_dir / f"{case['filename']}.wav"
 
-        print(f"🎤 Converting test text: {test_text[:50]}...")
-        tts.convert_text_to_audio(
-            text=test_text,
-            output_path=output_path
-        )
-        self.assertTrue(output_path.exists(),
-                       "TTS conversion failed or file not created")
-
-        file_size = output_path.stat().st_size
-        print("✅ Audio file generated successfully")
-        print(f"📊 File size: {file_size} bytes")
-        print(f"📁 Audio file saved to: {output_path}")
-
-        self.assertGreater(file_size, 1000, "Audio file seems too small")
-        print("✅ Smoke test passed - audio file looks valid")
-
-        print("\n🎉 TTS smoke test passed!")
-        print(f"💡 You can listen to the generated audio file at: {output_path}")
-
+            self.tts.convert_text_to_audio(
+                text=case["text"],
+                output_path=output_path,
+                voice=case["voice"]
+            )
+            self.assertTrue(output_path.exists())
+            file_size = output_path.stat().st_size
+            self.assertGreater(file_size, 1000, f"Audio file too small for {case['voice']}")
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

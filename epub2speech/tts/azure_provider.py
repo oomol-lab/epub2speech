@@ -45,12 +45,12 @@ class AzureTextToSpeech(TextToSpeechProtocol):
         if not text or not text.strip():
             raise ValueError("Empty text provided for conversion")
 
+        self._speech_config.speech_synthesis_voice_name = voice
         audio_config = speechsdk.audio.AudioOutputConfig(filename=str(output_path))
         speech_synthesizer = speechsdk.SpeechSynthesizer(
             speech_config=self._speech_config,
             audio_config=audio_config
         )
-        self._speech_config.speech_synthesis_voice_name = voice
         result = speech_synthesizer.speak_text_async(text).get()
 
         if result and result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
