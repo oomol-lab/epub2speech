@@ -2,7 +2,23 @@ import re
 from html.parser import HTMLParser
 
 _BLOCK_ELEMENTS: tuple[str, ...] = ("p", "div", "h1", "h2", "h3", "h4", "li", "br", "hr")
-_BLACKLIST_TAGS: tuple[str, ...] = ("script", "style", "noscript", "iframe", "object", "embed", "param", "source", "track", "canvas", "svg", "math", "template", "slot")
+_BLACKLIST_TAGS: tuple[str, ...] = (
+    "script",
+    "style",
+    "noscript",
+    "iframe",
+    "object",
+    "embed",
+    "param",
+    "source",
+    "track",
+    "canvas",
+    "svg",
+    "math",
+    "template",
+    "slot",
+)
+
 
 class _TextExtractor(HTMLParser):
     def __init__(self):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
 import unittest
 from pathlib import Path
 
@@ -37,10 +37,7 @@ class TestM4BGeneration(unittest.TestCase):
         self.assertIsNotNone(region, "Azure configuration missing region")
 
         # Create TTS provider
-        tts_provider = AzureTextToSpeech(
-            subscription_key=subscription_key,
-            region=region
-        )
+        tts_provider = AzureTextToSpeech(subscription_key=subscription_key, region=region)
 
         # Use real EPUB file from tests/assets
         epub_path = Path(__file__).parent / "assets" / "明朝那些事儿.epub"
@@ -61,7 +58,7 @@ class TestM4BGeneration(unittest.TestCase):
             output_path=output_path,
             tts_protocol=tts_provider,
             voice="zh-CN-XiaochenNeural",
-            max_chapters=2  # Limit to first 2 chapters for faster testing
+            max_chapters=2,  # Limit to first 2 chapters for faster testing
         )
 
         # Verify conversion was successful
@@ -87,8 +84,7 @@ class TestM4BGeneration(unittest.TestCase):
         azure_config = config.get_azure_config()
 
         tts_provider = AzureTextToSpeech(
-            subscription_key=azure_config["subscription_key"],
-            region=azure_config["region"]
+            subscription_key=azure_config["subscription_key"], region=azure_config["region"]
         )
 
         epub_path = Path(__file__).parent / "assets" / "明朝那些事儿.epub"
@@ -98,10 +94,7 @@ class TestM4BGeneration(unittest.TestCase):
         temp_base_dir.mkdir(exist_ok=True)
 
         # Test with different voices
-        test_voices = [
-            "zh-CN-XiaochenNeural",
-            "zh-CN-XiaoxiaoNeural"
-        ]
+        test_voices = ["zh-CN-XiaochenNeural", "zh-CN-XiaoxiaoNeural"]
 
         for voice in test_voices:
             with self.subTest(voice=voice):
@@ -113,7 +106,7 @@ class TestM4BGeneration(unittest.TestCase):
                     output_path=output_path,
                     tts_protocol=tts_provider,
                     voice=voice,
-                    max_chapters=1  # Just first chapter for speed
+                    max_chapters=1,  # Just first chapter for speed
                 )
 
                 self.assertIsNotNone(result_path, f"M4B conversion failed for voice: {voice}")

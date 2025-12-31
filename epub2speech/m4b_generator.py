@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import subprocess
 import shutil
+import subprocess
 from pathlib import Path
 
 
@@ -33,7 +33,7 @@ class M4BGenerator:
         output_path: Path,
         workspace_path: Path,
         cover_path: Path | None = None,
-        audio_bitrate: str = "64k"
+        audio_bitrate: str = "64k",
     ) -> Path:
         output_path = Path(output_path)
         output_dir = output_path.parent
@@ -51,32 +51,35 @@ class M4BGenerator:
 
         if cover_path and cover_path.exists():
             cover_args = [
-                "-i", str(cover_path),
-                "-map", "2:v",
-                "-disposition:v", "attached_pic",
-                "-c:v", "copy",
+                "-i",
+                str(cover_path),
+                "-map",
+                "2:v",
+                "-disposition:v",
+                "attached_pic",
+                "-c:v",
+                "copy",
             ]
         ffmpeg_cmd = [
             self.ffmpeg_path,
             "-y",
-            "-i", str(concat_audio),
-            "-i", str(metadata_file),
+            "-i",
+            str(concat_audio),
+            "-i",
+            str(metadata_file),
         ]
         if cover_args:
             ffmpeg_cmd.extend(cover_args)
 
-        ffmpeg_cmd.extend([
-            "-map", "0:a",
-            "-c:a", "aac",
-            "-b:a", audio_bitrate,
-            "-map_metadata", "1",
-            "-f", "mp4",
-            str(output_path)
-        ])
+        ffmpeg_cmd.extend(
+            ["-map", "0:a", "-c:a", "aac", "-b:a", audio_bitrate, "-map_metadata", "1", "-f", "mp4", str(output_path)]
+        )
         self._run_command(ffmpeg_cmd, "FFmpeg failed to create M4B")
         return output_path
 
-    def _create_chapter_metadata(self, chapters: list[ChapterInfo], work_dir: Path, titles: list[str], authors: list[str]) -> Path:
+    def _create_chapter_metadata(
+        self, chapters: list[ChapterInfo], work_dir: Path, titles: list[str], authors: list[str]
+    ) -> Path:
         metadata_file = work_dir / "chapters.txt"
 
         with open(metadata_file, "w", encoding="utf-8") as f:
@@ -115,10 +118,14 @@ class M4BGenerator:
     def _probe_duration(self, file_path: Path) -> float:
         args = [
             self.ffprobe_path,
-            "-i", str(file_path),
-            "-show_entries", "format=duration",
-            "-v", "quiet",
-            "-of", "default=noprint_wrappers=1:nokey=1"
+            "-i",
+            str(file_path),
+            "-show_entries",
+            "format=duration",
+            "-v",
+            "quiet",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
         ]
         result = self._run_command(args, f"Failed to probe duration for {file_path}")
         return float(result.stdout.strip())
@@ -137,11 +144,15 @@ class M4BGenerator:
         concat_cmd = [
             self.ffmpeg_path,
             "-y",
-            "-f", "concat",
-            "-safe", "0",
-            "-i", str(file_list_path),
-            "-c", "copy",
-            str(concat_audio_path)
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(file_list_path),
+            "-c",
+            "copy",
+            str(concat_audio_path),
         ]
         self._run_command(concat_cmd, "Failed to concatenate audio files")
         return concat_audio_path

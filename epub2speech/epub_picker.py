@@ -1,9 +1,10 @@
 import re
 import xml.etree.ElementTree as ET
-
 from os import PathLike
 from typing import Any, Generator, Literal
-from ebooklib import epub, ITEM_COVER, ITEM_IMAGE, ITEM_NAVIGATION
+
+from ebooklib import ITEM_COVER, ITEM_IMAGE, ITEM_NAVIGATION, epub
+
 from .extractor import extract_text_from_html
 
 
@@ -16,11 +17,11 @@ class EpubPicker:
 
     def _determine_epub_type(self) -> tuple[Any | None, Literal["EPUB2", "EPUB3"] | None]:
         for item in self._book.get_items_of_type(ITEM_NAVIGATION):
-            if item and item.file_name and item.file_name.endswith('.ncx'):
+            if item and item.file_name and item.file_name.endswith(".ncx"):
                 return (item, "EPUB2")
 
         for item in self._book.get_items():
-            if item and item.file_name and item.file_name.endswith('.xhtml'):
+            if item and item.file_name and item.file_name.endswith(".xhtml"):
                 content = item.get_content()
                 if content:
                     if isinstance(content, bytes):
@@ -91,7 +92,7 @@ class EpubPicker:
             yield from self._generate_virtual_navigation()
 
     def extract_text(self, href: str) -> str:
-        base_href = href.split('#')[0] if '#' in href else href
+        base_href = href.split("#")[0] if "#" in href else href
 
         doc_item = self._book.get_item_with_href(base_href)
 
@@ -166,10 +167,10 @@ class EpubPicker:
         for item in self._book.get_items():
             if item and item.file_name:
                 media_type = getattr(item, "media_type", "")
-                if media_type in ["application/xhtml+xml", "text/html"] or item.file_name.endswith('.xhtml'):
+                if media_type in ["application/xhtml+xml", "text/html"] or item.file_name.endswith(".xhtml"):
                     documents.append(item)
 
-        documents.sort(key=lambda x: x.file_name if x.file_name else '')
+        documents.sort(key=lambda x: x.file_name if x.file_name else "")
 
         if not documents:
             titles = self._book.get_metadata("DC", "title")
@@ -192,11 +193,12 @@ class EpubPicker:
             return ""
 
         from pathlib import Path
+
         stem = Path(filename).stem
 
         title = stem.replace("_", " ").replace("-", " ")
 
-        title = re.sub(r'\b(chapter|section|part|page)\s*(\d+)\b', r'\1 \2', title, flags=re.IGNORECASE)
-        title = re.sub(r'\b(\d+)\s*(chapter|section|part|page)\b', r'\2 \1', title, flags=re.IGNORECASE)
+        title = re.sub(r"\b(chapter|section|part|page)\s*(\d+)\b", r"\1 \2", title, flags=re.IGNORECASE)
+        title = re.sub(r"\b(\d+)\s*(chapter|section|part|page)\b", r"\2 \1", title, flags=re.IGNORECASE)
 
         return title.title() if title else ""

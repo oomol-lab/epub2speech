@@ -7,5 +7,15 @@
         "epub",
         "noscript",
         "speechsdk"
-    ]
+    ],
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.lintOnSave": true
 }

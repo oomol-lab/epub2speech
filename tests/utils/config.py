@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -14,16 +14,16 @@ class TTSConfig:
 
     def load_config(self) -> None:
         if not self.config_path.exists():
-            logger.warning(f"Config file not found: {self.config_path}")
+            logger.warning("Config file not found: %s", self.config_path)
             self._config = {}
             return
 
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 self._config = json.load(f)
-            logger.info(f"Configuration loaded from: {self.config_path}")
+            logger.info("Configuration loaded from: %s", self.config_path)
         except Exception as e:
-            logger.error(f"Failed to load config: {e}")
+            logger.error("Failed to load config: %s", e)
             self._config = {}
 
     def get_azure_config(self) -> Dict[str, Any]:

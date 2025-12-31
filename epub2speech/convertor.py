@@ -1,15 +1,15 @@
-import re
 import io
-
-from PIL import Image
+import re
+from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
 from typing import Callable
-from dataclasses import dataclass
 
-from .epub_picker import EpubPicker
+from PIL import Image
+
 from .chapter_tts import ChapterTTS
-from .m4b_generator import M4BGenerator, ChapterInfo
+from .epub_picker import EpubPicker
+from .m4b_generator import ChapterInfo, M4BGenerator
 from .tts.protocol import TextToSpeechProtocol
 
 
@@ -49,18 +49,14 @@ class _EpubToSpeechConverter:
     def convert(self) -> Path | None:
         chapters = list(self._epub_picker.get_nav_items())
         if self._max_chapters is not None:
-            chapters = chapters[:self._max_chapters]
+            chapters = chapters[: self._max_chapters]
         if not chapters:
             return None
 
         chapter_infos: list[ChapterInfo] = []
 
         for i, (chapter_title, chapter_href) in enumerate(chapters):
-            progress = ConversionProgress(
-                current_chapter=i,
-                total_chapters=len(chapters),
-                chapter_title=chapter_title
-            )
+            progress = ConversionProgress(current_chapter=i, total_chapters=len(chapters), chapter_title=chapter_title)
             if self._progress_callback:
                 self._progress_callback(progress)
 
@@ -70,10 +66,7 @@ class _EpubToSpeechConverter:
                 i,
             )
             if audio_file:
-                chapter_infos.append(ChapterInfo(
-                    title=chapter_title,
-                    audio_file=audio_file
-                ))
+                chapter_infos.append(ChapterInfo(title=chapter_title, audio_file=audio_file))
 
         cover_bytes = self._epub_picker.cover_bytes
         cover_path: Path | None = None
@@ -87,7 +80,7 @@ class _EpubToSpeechConverter:
             chapters=chapter_infos,
             output_path=self._output_path,
             workspace_path=self._workspace_path,
-            cover_path=cover_path
+            cover_path=cover_path,
         )
         return self._output_path
 
@@ -119,18 +112,18 @@ class _EpubToSpeechConverter:
             image_buffer = io.BytesIO(cover_bytes)
             with Image.open(image_buffer) as img:
                 format_name = img.format
-                if format_name == 'JPEG':
-                    extension = '.jpg'
-                elif format_name == 'PNG':
-                    extension = '.png'
-                elif format_name == 'GIF':
-                    extension = '.gif'
-                elif format_name == 'BMP':
-                    extension = '.bmp'
-                elif format_name == 'WEBP':
-                    extension = '.webp'
+                if format_name == "JPEG":
+                    extension = ".jpg"
+                elif format_name == "PNG":
+                    extension = ".png"
+                elif format_name == "GIF":
+                    extension = ".gif"
+                elif format_name == "BMP":
+                    extension = ".bmp"
+                elif format_name == "WEBP":
+                    extension = ".webp"
                 else:
-                    extension = '.jpg'
+                    extension = ".jpg"
 
                 cover_path = self._workspace_path / f"cover{extension}"
 
@@ -146,7 +139,7 @@ class _EpubToSpeechConverter:
             return cover_path
 
     def _sanitize_filename(self, filename: str) -> str:
-        sanitized = re.sub(r'[<>:"/\|?*]', '_', filename)
+        sanitized = re.sub(r'[<>:"/\|?*]', "_", filename)
         return sanitized[:50]
 
 
@@ -166,6 +159,6 @@ def convert_epub_to_m4b(
         tts_protocol=tts_protocol,
         max_chapters=max_chapters,
         voice=voice,
-        progress_callback=progress_callback
+        progress_callback=progress_callback,
     )
     return converter.convert()

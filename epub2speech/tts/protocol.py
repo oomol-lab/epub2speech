@@ -1,5 +1,5 @@
-from typing import Protocol, runtime_checkable
 from pathlib import Path
+from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -9,5 +9,4 @@ class TextToSpeechProtocol(Protocol):
         text: str,
         output_path: Path,
         voice: str,
-    ) -> None:
-        ...
+    ) -> None: ...
