@@ -9,5 +9,4 @@ class TextToSpeechProtocol(Protocol):
         text: str,
         output_path: Path,
         voice: str,
-    ) -> None:
-        ...
+    ) -> None: ...

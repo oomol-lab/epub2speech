@@ -2,6 +2,7 @@
 """
 Pylint check script for the project
 """
+
 import subprocess
 import sys
 from pathlib import Path
@@ -18,7 +19,7 @@ def run_pylint():
         "--max-line-length=120",
         "--good-names=i,j,k,ex,Run,_,x,y,z",  # Allow common short names
         "--ignore=tests",  # Skip tests directory
-        str(project_root / "epub2speech")
+        str(project_root / "epub2speech"),
     ]
 
     print("Running pylint check...")

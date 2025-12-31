@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
 import unittest
 from pathlib import Path
 
@@ -12,7 +12,6 @@ from epub2speech.tts import TextToSpeechProtocol
 
 class TestChapterTTS(unittest.TestCase):
     """Test cases for ChapterTTS functionality"""
-
 
     def test_cjk_sentence_splitting(self):
         """Test CJK sentence splitting with different languages"""
@@ -41,23 +40,23 @@ class TestChapterTTS(unittest.TestCase):
             {
                 "name": "Chinese long sentence",
                 "text": "这是一个很长的中文句子，包含了多个分句；每个分句都有不同的内容：第一个分句介绍背景，第二个分句说明情况，第三个分句给出结论。",
-                "expected_min_sentences": 1
+                "expected_min_sentences": 1,
             },
             {
                 "name": "Japanese long sentence",
                 "text": "これは長い日本語の文です、複数の節を含んでいます；各節には異なる内容があります：最初の節は背景を説明し、最後に結論を述べます。",
-                "expected_min_sentences": 1
+                "expected_min_sentences": 1,
             },
             {
                 "name": "Mixed CJK and English",
                 "text": "This is a long sentence in English, it has multiple clauses; each clause has different content: first clause introduces background, second clause explains situation. 这是一个很长的中文句子，包含了英文和中文的混合内容；这种混合很常见。",
-                "expected_min_sentences": 1
+                "expected_min_sentences": 1,
             },
             {
                 "name": "Korean with Chinese punctuation",
                 "text": "이것은 긴 한국어 문장입니다, 여러 절을 포함하고 있습니다; 각 절에는 다른 내용이 있습니다: 첫 번째 절은 배경을 소개합니다. 这是包含韩语和中文的长句，展示了混合使用的情况。",
-                "expected_min_sentences": 1
-            }
+                "expected_min_sentences": 1,
+            },
         ]
 
         output_dir = Path(__file__).parent / "temp"
@@ -66,23 +65,23 @@ class TestChapterTTS(unittest.TestCase):
         temp_dir.mkdir(exist_ok=True)
 
         for test_case in test_cases:
-
-            segments = chapter_tts.split_text_into_segments(test_case['text'])
+            segments = chapter_tts.split_text_into_segments(test_case["text"])
             segment_list = list(segments)
 
-            self.assertGreaterEqual(len(segment_list), test_case['expected_min_sentences'],
-                                   f"Expected at least {test_case['expected_min_sentences']} segments, got {len(segment_list)}")
+            self.assertGreaterEqual(
+                len(segment_list),
+                test_case["expected_min_sentences"],
+                f"Expected at least {test_case['expected_min_sentences']} segments, got {len(segment_list)}",
+            )
 
             output_path = output_dir / f"mock_{test_case['name'].replace(' ', '_').lower()}.wav"
             chapter_tts.process_chapter(
-                text=test_case['text'],
-                output_path=output_path,
-                workspace_path=temp_dir,
-                voice="mock-voice"
+                text=test_case["text"], output_path=output_path, workspace_path=temp_dir, voice="mock-voice"
             )
 
         # Clean up workspace files after all tests
         import shutil
+
         if temp_dir.exists():
             shutil.rmtree(temp_dir)
 
@@ -134,10 +133,7 @@ class TestChapterTTS(unittest.TestCase):
         try:
             # Process chapter - this should trigger resampling since segments have different rates
             chapter_tts.process_chapter(
-                text=test_text,
-                output_path=output_path,
-                workspace_path=temp_dir,
-                voice="mixed-rate-voice"
+                text=test_text, output_path=output_path, workspace_path=temp_dir, voice="mixed-rate-voice"
             )
 
             # Verify the output file was created
@@ -154,7 +150,10 @@ class TestChapterTTS(unittest.TestCase):
             if output_path.exists():
                 output_path.unlink()
             import shutil
+
             if temp_dir.exists():
                 shutil.rmtree(temp_dir)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

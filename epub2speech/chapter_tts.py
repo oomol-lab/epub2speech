@@ -15,12 +15,10 @@ from .tts import TextToSpeechProtocol
 SEGMENT_LEVEL = 1
 SENTENCE_LEVEL = 2
 
+
 class ChapterTTS:
     def __init__(
-        self,
-        tts_protocol: TextToSpeechProtocol,
-        max_segment_length: int = 500,
-        language_model: Optional[str] = None
+        self, tts_protocol: TextToSpeechProtocol, max_segment_length: int = 500, language_model: Optional[str] = None
     ):
         self.tts_protocol = tts_protocol
         self.max_segment_length = max_segment_length
@@ -30,6 +28,7 @@ class ChapterTTS:
         if language_model:
             try:
                 import spacy
+
                 return spacy.load(language_model)
             except OSError:
                 pass
@@ -44,7 +43,7 @@ class ChapterTTS:
         output_path: Path,
         workspace_path: Path,
         voice: str,
-        progress_callback: Optional[Callable[[int, int], None]] = None
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> None:
         # TODO: 重构 temp 逻辑，不需要 temp 这个概念了
         segments = list(self.split_text_into_segments(text))
@@ -59,11 +58,7 @@ class ChapterTTS:
             session_id = str(uuid.uuid4())[:8]
             temp_audio_path = workspace_path / f"{session_id}_segment_{i:04d}.wav"
 
-            self.tts_protocol.convert_text_to_audio(
-                text=segment,
-                output_path=temp_audio_path,
-                voice=voice
-            )
+            self.tts_protocol.convert_text_to_audio(text=segment, output_path=temp_audio_path, voice=voice)
             if not temp_audio_path.exists():
                 continue
 
@@ -112,10 +107,7 @@ class ChapterTTS:
 
         if not all_resources:
             text_resource = Resource(
-                count=len(text),
-                start_incision=SENTENCE_LEVEL,
-                end_incision=SENTENCE_LEVEL,
-                payload=text
+                count=len(text), start_incision=SENTENCE_LEVEL, end_incision=SENTENCE_LEVEL, payload=text
             )
             all_resources.append(text_resource)
 
@@ -131,16 +123,13 @@ class ChapterTTS:
                         count=len(fragment_text),
                         start_incision=SEGMENT_LEVEL,
                         end_incision=SEGMENT_LEVEL,
-                        payload=fragment_text
+                        payload=fragment_text,
                     )
                     yield fragment_resource
                     current_fragment = []
 
                 punct_resource = Resource(
-                    count=len(token.text),
-                    start_incision=SEGMENT_LEVEL,
-                    end_incision=SEGMENT_LEVEL,
-                    payload=token.text
+                    count=len(token.text), start_incision=SEGMENT_LEVEL, end_incision=SEGMENT_LEVEL, payload=token.text
                 )
                 yield punct_resource
             else:
@@ -152,19 +141,15 @@ class ChapterTTS:
                 count=len(fragment_text),
                 start_incision=SEGMENT_LEVEL,
                 end_incision=SEGMENT_LEVEL,
-                payload=fragment_text
+                payload=fragment_text,
             )
             yield fragment_resource
 
     def _split_by_resource_segmentation(self, resources: List[Resource]) -> Generator[str, None, None]:
         max_byte_length = self.max_segment_length * 3
-        groups = list(split(
-            iter(resources),
-            max_segment_count=max_byte_length,
-            border_incision=1,
-            gap_rate=0.0,
-            tail_rate=0.0
-        ))
+        groups = list(
+            split(iter(resources), max_segment_count=max_byte_length, border_incision=1, gap_rate=0.0, tail_rate=0.0)
+        )
 
         for group in groups:
             segment_chars = []

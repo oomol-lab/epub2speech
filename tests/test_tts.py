@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
 import unittest
 from pathlib import Path
 
@@ -23,10 +23,7 @@ class TestTTSIntegration(unittest.TestCase):
         self.assertTrue(config.validate_config())
 
         azure_config = config.get_azure_config()
-        self.tts = AzureTextToSpeech(
-            subscription_key=azure_config["subscription_key"],
-            region=azure_config["region"]
-        )
+        self.tts = AzureTextToSpeech(subscription_key=azure_config["subscription_key"], region=azure_config["region"])
 
         self.output_dir = Path(__file__).parent / "temp" / "tts_outputs"
         self.output_dir.mkdir(exist_ok=True)
@@ -37,28 +34,17 @@ class TestTTSIntegration(unittest.TestCase):
     def test_voice_parameter_functionality(self):
         """Test voice parameter with different languages and voices"""
         test_cases = [
-            {
-                "voice": "zh-CN-XiaochenNeural",
-                "text": "这是一个中文语音测试",
-                "filename": "chinese_test"
-            },
-            {
-                "voice": "en-US-BrianNeural",
-                "text": "This is an English voice test",
-                "filename": "english_test"
-            }
+            {"voice": "zh-CN-XiaochenNeural", "text": "这是一个中文语音测试", "filename": "chinese_test"},
+            {"voice": "en-US-BrianNeural", "text": "This is an English voice test", "filename": "english_test"},
         ]
         for case in test_cases:
             output_path = self.output_dir / f"{case['filename']}.wav"
 
-            self.tts.convert_text_to_audio(
-                text=case["text"],
-                output_path=output_path,
-                voice=case["voice"]
-            )
+            self.tts.convert_text_to_audio(text=case["text"], output_path=output_path, voice=case["voice"])
             self.assertTrue(output_path.exists())
             file_size = output_path.stat().st_size
             self.assertGreater(file_size, 1000, f"Audio file too small for {case['voice']}")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

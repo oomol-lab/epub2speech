@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
 import unittest
 from pathlib import Path
 
@@ -15,8 +15,20 @@ TEST_BOOKS = [
             "epub_version": "EPUB2",
             "meta_titles": [("The little prince", {})],
             "meta_creators": [
-                ("Antoine de Saint-Exupéry", {"{http://www.idpf.org/2007/opf}file-as": "Saint-Exupéry, Antoine de & Howard, Richard", "{http://www.idpf.org/2007/opf}role": "aut"}),
-                ("Richard Howard", {"{http://www.idpf.org/2007/opf}file-as": "Saint-Exupéry, Antoine de & Howard, Richard", "{http://www.idpf.org/2007/opf}role": "aut"})
+                (
+                    "Antoine de Saint-Exupéry",
+                    {
+                        "{http://www.idpf.org/2007/opf}file-as": "Saint-Exupéry, Antoine de & Howard, Richard",
+                        "{http://www.idpf.org/2007/opf}role": "aut",
+                    },
+                ),
+                (
+                    "Richard Howard",
+                    {
+                        "{http://www.idpf.org/2007/opf}file-as": "Saint-Exupéry, Antoine de & Howard, Richard",
+                        "{http://www.idpf.org/2007/opf}role": "aut",
+                    },
+                ),
             ],
             "has_cover": True,
             "nav_items": [
@@ -47,9 +59,9 @@ TEST_BOOKS = [
                 ("Chapter XXV", "10258.xhtml"),
                 ("Chapter XXVI", "10609.xhtml"),
                 ("Chapter XXVII", "10740.xhtml"),
-                ("Saint-Exupéry: A Short Biography", "10740.xhtml#10664")
-            ]
-        }
+                ("Saint-Exupéry: A Short Biography", "10740.xhtml#10664"),
+            ],
+        },
     },
     {
         "filename": "明朝那些事儿.epub",
@@ -62,9 +74,9 @@ TEST_BOOKS = [
                 ("序言", "chap_1.xhtml"),
                 ("第壹部 洪武大帝", "volume_1.xhtml"),
                 ("第一章 童年", "chap_2.xhtml"),
-                ("第二章 灾难", "chap_3.xhtml")
-            ]
-        }
+                ("第二章 灾难", "chap_3.xhtml"),
+            ],
+        },
     },
     {
         "filename": "Ming dynasty.epub",
@@ -73,10 +85,8 @@ TEST_BOOKS = [
             "meta_titles": [("Ming dynasty", {})],
             "meta_creators": [("Unknown", {})],
             "has_cover": False,
-            "nav_items": [
-                ("Start", "index.html")
-            ]
-        }
+            "nav_items": [("Start", "index.html")],
+        },
     },
     {
         "filename": "Ming dynasty no ncx ref.epub",
@@ -85,11 +95,9 @@ TEST_BOOKS = [
             "meta_titles": [("Ming dynasty", {})],
             "meta_creators": [("Unknown", {})],
             "has_cover": False,
-            "nav_items": [
-                ("Index", "index.html")
-            ]
-        }
-    }
+            "nav_items": [("Index", "index.html")],
+        },
+    },
 ]
 
 
@@ -111,36 +119,57 @@ class TestEpubPicker(unittest.TestCase):
                 picker = EpubPicker(epub_path)
 
                 actual_version = picker.epub_version
-                self.assertEqual(actual_version, expected["epub_version"],
-                               f"EPUB version mismatch: expected {expected['epub_version']}, actual {actual_version}")
+                self.assertEqual(
+                    actual_version,
+                    expected["epub_version"],
+                    f"EPUB version mismatch: expected {expected['epub_version']}, actual {actual_version}",
+                )
 
                 actual_titles = picker.title
                 self.assertGreater(len(actual_titles), 0, "Should have title metadata")
-                self.assertEqual(actual_titles[0], expected["meta_titles"][0][0],
-                               f"Title mismatch: expected '{expected['meta_titles'][0][0]}', actual '{actual_titles[0]}'")
+                self.assertEqual(
+                    actual_titles[0],
+                    expected["meta_titles"][0][0],
+                    f"Title mismatch: expected '{expected['meta_titles'][0][0]}', actual '{actual_titles[0]}'",
+                )
 
                 actual_creators = picker.author
                 self.assertGreater(len(actual_creators), 0, "Should have creator metadata")
-                self.assertEqual(actual_creators[0], expected["meta_creators"][0][0],
-                               f"Creator mismatch: expected '{expected['meta_creators'][0][0]}', actual '{actual_creators[0]}'")
+                self.assertEqual(
+                    actual_creators[0],
+                    expected["meta_creators"][0][0],
+                    f"Creator mismatch: expected '{expected['meta_creators'][0][0]}', actual '{actual_creators[0]}'",
+                )
 
                 has_cover = picker.cover_bytes is not None
-                self.assertEqual(has_cover, expected["has_cover"],
-                               f"Cover existence mismatch: expected {expected['has_cover']}, actual {has_cover}")
+                self.assertEqual(
+                    has_cover,
+                    expected["has_cover"],
+                    f"Cover existence mismatch: expected {expected['has_cover']}, actual {has_cover}",
+                )
 
                 nav_items = list(picker.get_nav_items())
                 expected_nav_count = len(expected["nav_items"])
                 actual_nav_count = len(nav_items)
 
-                self.assertEqual(actual_nav_count, expected_nav_count,
-                               f"Navigation items count mismatch: expected {expected_nav_count}, actual {actual_nav_count}")
+                self.assertEqual(
+                    actual_nav_count,
+                    expected_nav_count,
+                    f"Navigation items count mismatch: expected {expected_nav_count}, actual {actual_nav_count}",
+                )
 
                 for j, (actual_title, actual_href) in enumerate(nav_items):
                     expected_title, expected_href = expected["nav_items"][j]
-                    self.assertEqual(actual_title, expected_title,
-                                   f"Navigation item {j+1} title mismatch: expected '{expected_title}', actual '{actual_title}'")
-                    self.assertEqual(actual_href, expected_href,
-                                   f"Navigation item {j+1} href mismatch: expected '{expected_href}', actual '{actual_href}'")
+                    self.assertEqual(
+                        actual_title,
+                        expected_title,
+                        f"Navigation item {j + 1} title mismatch: expected '{expected_title}', actual '{actual_title}'",
+                    )
+                    self.assertEqual(
+                        actual_href,
+                        expected_href,
+                        f"Navigation item {j + 1} href mismatch: expected '{expected_href}', actual '{actual_href}'",
+                    )
 
                 if nav_items:
                     first_href = nav_items[0][1]
