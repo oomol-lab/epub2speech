@@ -1,9 +1,9 @@
-import soundfile as sf
-import numpy as np
+from pathlib import Path
 
 import azure.cognitiveservices.speech as speechsdk
+import numpy as np
+import soundfile as sf
 
-from pathlib import Path
 from .protocol import TextToSpeechProtocol
 
 

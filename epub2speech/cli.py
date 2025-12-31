@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import sys
-import argparse
 from pathlib import Path
 
-from .convertor import convert_epub_to_m4b, ConversionProgress
+from .convertor import ConversionProgress, convert_epub_to_m4b
 
 
 def progress_callback(progress: ConversionProgress) -> None:

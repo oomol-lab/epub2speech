@@ -1,16 +1,16 @@
 import uuid
+from pathlib import Path
+from typing import Callable, Generator, List, Optional
+
 import numpy as np
 import soundfile as sf
-
-from pathlib import Path
-from typing import List, Optional, Callable, Generator
+from resource_segmentation import Resource, Segment, split
 from scipy.signal import resample
 from spacy.lang.xx import MultiLanguage
 from spacy.language import Language
 from spacy.tokens import Span
 
 from .tts import TextToSpeechProtocol
-from resource_segmentation import split, Resource, Segment
 
 SEGMENT_LEVEL = 1
 SENTENCE_LEVEL = 2

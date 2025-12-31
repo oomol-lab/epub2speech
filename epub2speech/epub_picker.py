@@ -1,9 +1,10 @@
 import re
 import xml.etree.ElementTree as ET
-
 from os import PathLike
 from typing import Any, Generator, Literal
-from ebooklib import epub, ITEM_COVER, ITEM_IMAGE, ITEM_NAVIGATION
+
+from ebooklib import ITEM_COVER, ITEM_IMAGE, ITEM_NAVIGATION, epub
+
 from .extractor import extract_text_from_html
 
 

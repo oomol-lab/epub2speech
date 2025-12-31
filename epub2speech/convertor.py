@@ -1,15 +1,15 @@
-import re
 import io
-
-from PIL import Image
+import re
+from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
 from typing import Callable
-from dataclasses import dataclass
 
-from .epub_picker import EpubPicker
+from PIL import Image
+
 from .chapter_tts import ChapterTTS
-from .m4b_generator import M4BGenerator, ChapterInfo
+from .epub_picker import EpubPicker
+from .m4b_generator import ChapterInfo, M4BGenerator
 from .tts.protocol import TextToSpeechProtocol
 
 
