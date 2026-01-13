@@ -1,24 +1,30 @@
 <div align=center>
   <h1>EPUB to Speech</h1>
+  <p>
+    <a href="https://github.com/oomol-lab/epub2speech/actions/workflows/merge-build.yml" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/oomol-lab/epub2speech/merge-build.yml?branch=main&label=build" alt="build" /></a>
+    <a href="https://pypi.org/project/epub2speech/" target="_blank"><img src="https://img.shields.io/badge/pip_install-epub2speech-blue" alt="pip install epub2speech" /></a>
+    <a href="https://pypi.org/project/epub2speech/" target="_blank"><img src="https://img.shields.io/pypi/v/epub2speech.svg" alt="pypi epub2speech" /></a>
+    <a href="https://pypi.org/project/epub2speech/" target="_blank"><img src="https://img.shields.io/pypi/pyversions/epub2speech.svg" alt="python versions" /></a>
+    <a href="https://github.com/oomol-lab/epub2speech/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/github/license/oomol-lab/epub2speech" alt="license" /></a>
+  </p>
   <p><a href="./README.md">English</a> | 中文</p>
 </div>
 
-使用 Azure 文本转语音技术将 EPUB 电子书转换为高质量的有声读物。
+使用多种文本转语音服务将 EPUB 电子书转换为高质量的有声读物。
 
 ## 功能特点
 
 - **📚 EPUB 支持**: 兼容 EPUB 2 和 EPUB 3 格式
-- **🎙️ 高质量 TTS**: 使用 Azure 认知服务语音技术进行自然语音合成
-- **🌍 多语言支持**: 通过 Azure TTS 支持多种语言和语音
+- **🎙️ 多 TTS 提供商**: 支持 Azure 和豆包 TTS 服务
+- **🔄 自动检测**: 自动检测已配置的提供商
+- **🌍 多语言支持**: 支持多种语言和语音
 - **📱 M4B 输出**: 生成带章节导航的标准 M4B 有声读物格式
 - **🔧 CLI 界面**: 易于使用的命令行工具，带进度跟踪
 
 ## 基本用法
 
-将 EPUB 文件转换为有声读物：
-
 ```bash
-epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --azure-key YOUR_KEY --azure-region YOUR_REGION
+epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural
 ```
 
 ## 安装
@@ -27,7 +33,7 @@ epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --azure-key YOUR_
 
 - Python 3.11 或更高版本
 - FFmpeg（用于音频处理）
-- Azure 语音服务凭据
+- TTS 提供商凭据（Azure 或豆包）
 
 ### 安装依赖
 
@@ -42,17 +48,11 @@ poetry install
 # Windows: 从 https://ffmpeg.org/download.html 下载
 ```
 
-### Azure 语音服务设置
-
-1. 在 https://azure.microsoft.com 创建 Azure 账户
-2. 在 Azure 门户中创建语音服务资源
-3. 从 Azure 仪表板获取您的订阅密钥和区域
-
 ## 快速开始
 
-### 环境变量
+### 选项 1：使用 Azure TTS
 
-将 Azure 凭据设置为环境变量：
+设置环境变量并运行：
 
 ```bash
 export AZURE_SPEECH_KEY="您的订阅密钥"
@@ -61,11 +61,51 @@ export AZURE_SPEECH_REGION="您的区域"
 epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural
 ```
 
-### 高级选项
+**获取凭据：**
+- 在 https://azure.microsoft.com 创建 Azure 账户
+- 在 Azure 门户中创建语音服务资源
+- 从仪表板获取订阅密钥和区域
+
+**可用语音：**
+- 语音列表：https://learn.microsoft.com/zh-cn/azure/ai-services/speech-service/language-support?tabs=tts#voice-styles-and-roles
+- 语音库（试听）：https://speech.microsoft.com/portal/voicegallery
+
+### 选项 2：使用豆包 TTS
+
+设置环境变量并运行：
+
+```bash
+export DOUBAO_ACCESS_TOKEN="您的访问令牌"
+export DOUBAO_BASE_URL="您的 API 基础 URL"
+
+epub2speech input.epub output.m4b --voice zh_male_lengkugege_emo_v2_mars_bigtts
+```
+
+**获取凭据：**
+- 从火山引擎控制台获取豆包访问令牌和 API 基础 URL
+
+**可用语音：** https://www.volcengine.com/docs/6561/1257544?lang=zh
+_（在豆包 TTS 文档中查找语音 ID）_
+
+### 提供商自动检测
+
+如果您只配置了一个提供商，它将被自动检测和使用。如果配置了多个提供商，请指定要使用的提供商：
+
+```bash
+# 显式使用 Azure
+epub2speech input.epub output.m4b --provider azure --voice zh-CN-XiaoxiaoNeural
+
+# 显式使用豆包
+epub2speech input.epub output.m4b --provider doubao --voice zh_male_lengkugege_emo_v2_mars_bigtts
+```
+
+## 高级选项
+
+### 通用选项
 
 ```bash
 # 限制前 5 个章节
-epub2speech input.epub output.m4b --voice en-US-AriaNeural --max-chapters 5
+epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --max-chapters 5
 
 # 使用自定义工作目录
 epub2speech input.epub output.m4b --voice zh-CN-YunxiNeural --workspace /tmp/my-workspace
@@ -74,19 +114,72 @@ epub2speech input.epub output.m4b --voice zh-CN-YunxiNeural --workspace /tmp/my-
 epub2speech input.epub output.m4b --voice ja-JP-NanamiNeural --quiet
 ```
 
-## 可用语音
+### Azure TTS 配置
 
-完整列表请参见 [Azure 神经语音](https://docs.microsoft.com/zh-cn/azure/cognitive-services/speech-service/language-support#neural-voices)。
+通过命令行参数传递凭据：
+
+```bash
+epub2speech input.epub output.m4b \
+  --voice zh-CN-XiaoxiaoNeural \
+  --azure-key YOUR_KEY \
+  --azure-region YOUR_REGION
+```
+
+### 豆包 TTS 配置
+
+通过命令行参数传递凭据：
+
+```bash
+epub2speech input.epub output.m4b \
+  --voice zh_male_lengkugege_emo_v2_mars_bigtts \
+  --doubao-token YOUR_TOKEN \
+  --doubao-url YOUR_BASE_URL
+```
 
 ## 工作原理
 
 1. **EPUB 解析**: 从 EPUB 文件中提取文本内容和元数据
 2. **章节检测**: 使用 EPUB 导航数据识别章节
 3. **文本处理**: 清理和分割文本以实现最佳语音合成
-4. **音频生成**: 使用 Azure TTS 将文本转换为语音
+4. **音频生成**: 使用您选择的 TTS 提供商将文本转换为语音
 5. **M4B 创建**: 将音频文件与章节元数据组合成 M4B 格式
 
 ## 开发
+
+### 作为库使用
+
+您可以将 epub2speech 集成到自己的 Python 应用程序中：
+
+```python
+from pathlib import Path
+from epub2speech import convert_epub_to_m4b, ConversionProgress
+from epub2speech.tts.azure_provider import AzureTextToSpeech
+# 或使用：from epub2speech.tts.doubao_provider import DoubaoTextToSpeech
+
+# 初始化 TTS 提供商
+tts = AzureTextToSpeech(
+    subscription_key="your-key",
+    region="your-region"
+)
+
+# 可选：定义进度回调
+def on_progress(progress: ConversionProgress):
+    print(f"{progress.progress:.1f}% - 章节 {progress.current_chapter}/{progress.total_chapters}")
+
+# 转换 EPUB 到 M4B
+result = convert_epub_to_m4b(
+    epub_path=Path("input.epub"),
+    workspace=Path("./workspace"),
+    output_path=Path("output.m4b"),
+    tts_protocol=tts,
+    voice="zh-CN-XiaoxiaoNeural",
+    max_chapters=None,  # 可选：限制章节数
+    progress_callback=on_progress  # 可选
+)
+
+if result:
+    print(f"成功：{result}")
+```
 
 ### 运行测试
 
@@ -111,7 +204,6 @@ python test.py --test test_tts
 
 ## 致谢
 
-- [Azure 认知服务](https://azure.microsoft.com/services/cognitive-services/) 提供文本转语音技术
 - [ebooklib](https://github.com/aerkalov/ebooklib) 用于 EPUB 解析
 - [FFmpeg](https://ffmpeg.org/) 用于音频处理
 - [spaCy](https://spacy.io/) 用于自然语言处理
