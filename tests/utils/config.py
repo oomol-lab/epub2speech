@@ -3,16 +3,21 @@ import os
 from pathlib import Path
 from typing import Any, Dict
 
-from dotenv import load_dotenv
-
 logger = logging.getLogger(__name__)
 
-# Load .env file from project root
-_project_root = Path(__file__).parent.parent.parent
-_env_path = _project_root / ".env"
-if _env_path.exists():
-    load_dotenv(_env_path)
-    logger.debug("Loaded environment variables from: %s", _env_path)
+# Load .env file from project root (only if dotenv is available)
+try:
+    from dotenv import load_dotenv
+
+    _project_root = Path(__file__).parent.parent.parent
+    _env_path = _project_root / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path)
+        logger.debug("Loaded environment variables from: %s", _env_path)
+
+except ImportError:
+    # dotenv not installed, will use system environment variables directly
+    pass
 
 
 class TTSConfig:
