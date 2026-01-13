@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
+import contextlib
 import os
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NoReturn
@@ -221,46 +223,49 @@ Examples:
         print(f"Error: Input file must be in EPUB format: {epub_path}", file=sys.stderr)
         sys.exit(1)
 
+    # Create workspace context manager
     if args.workspace:
-        workspace = Path(args.workspace)
-        workspace.mkdir(parents=True, exist_ok=True)
+        workspace_path = Path(args.workspace)
+        workspace_path.mkdir(parents=True, exist_ok=True)
+        workspace_ctx = contextlib.nullcontext(workspace_path)
     else:
-        import tempfile
-
-        workspace = Path(tempfile.mkdtemp(prefix="epub2speech_"))
+        workspace_ctx = tempfile.TemporaryDirectory(prefix="epub2speech_")
 
     output_path = Path(args.output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Detect and create TTS provider
-        provider_name, tts_provider = _detect_and_create_tts_provider(args)
+        with workspace_ctx as workspace_dir:
+            workspace = Path(workspace_dir)
 
-        print(f"Starting conversion: {epub_path.name}")
-        print(f"Output file: {output_path}")
-        print(f"Workspace: {workspace}")
-        print(f"TTS Provider: {_PROVIDER_CONFIGS[provider_name].display_name}")
-        if args.voice:
-            print(f"Using voice: {args.voice}")
-        if args.max_chapters:
-            print(f"Maximum chapters: {args.max_chapters}")
-        print()
+            # Detect and create TTS provider
+            provider_name, tts_provider = _detect_and_create_tts_provider(args)
 
-        result_path = convert_epub_to_m4b(
-            epub_path=epub_path,
-            workspace=workspace,
-            output_path=output_path,
-            tts_protocol=tts_provider,
-            voice=args.voice,
-            max_chapters=args.max_chapters,
-            progress_callback=None if args.quiet else progress_callback,
-        )
-        if result_path:
-            print(f"\nConversion complete! Output file: {result_path}")
-            print(f"File size: {result_path.stat().st_size / (1024 * 1024):.1f} MB")
-        else:
-            print("\nConversion failed: no output file generated", file=sys.stderr)
-            sys.exit(1)
+            print(f"Starting conversion: {epub_path.name}")
+            print(f"Output file: {output_path}")
+            print(f"Workspace: {workspace}")
+            print(f"TTS Provider: {_PROVIDER_CONFIGS[provider_name].display_name}")
+            if args.voice:
+                print(f"Using voice: {args.voice}")
+            if args.max_chapters:
+                print(f"Maximum chapters: {args.max_chapters}")
+            print()
+
+            result_path = convert_epub_to_m4b(
+                epub_path=epub_path,
+                workspace=workspace,
+                output_path=output_path,
+                tts_protocol=tts_provider,
+                voice=args.voice,
+                max_chapters=args.max_chapters,
+                progress_callback=None if args.quiet else progress_callback,
+            )
+            if result_path:
+                print(f"\nConversion complete! Output file: {result_path}")
+                print(f"File size: {result_path.stat().st_size / (1024 * 1024):.1f} MB")
+            else:
+                print("\nConversion failed: no output file generated", file=sys.stderr)
+                sys.exit(1)
 
     except KeyboardInterrupt:
         print("\nConversion interrupted by user", file=sys.stderr)
