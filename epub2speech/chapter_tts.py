@@ -10,7 +10,7 @@ from spacy.lang.xx import MultiLanguage
 from spacy.language import Language
 from spacy.tokens import Span
 
-from .tts import TextToSpeechProtocol
+from .tts.protocol import TextToSpeechProtocol
 
 SEGMENT_LEVEL = 1
 SENTENCE_LEVEL = 2
