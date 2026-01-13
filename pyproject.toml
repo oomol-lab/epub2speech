@@ -1,6 +1,6 @@
 [project]
 name = "epub2speech"
-version = "0.0.3"
+version = "0.0.4"
 description = "Convert EPUB e-books into high-quality audiobooks using Azure Text-to-Speech technology"
 readme = "README.md"
 license = {text = "MIT"}
