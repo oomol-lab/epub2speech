@@ -16,10 +16,7 @@ Convert EPUB e-books into high-quality audiobooks using multiple Text-to-Speech 
 
 ## Basic Usage
 
-Convert an EPUB file to audiobook (provider auto-detected):
-
 ```bash
-# Set up your TTS provider credentials first (see Quick Start section)
 epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural
 ```
 
@@ -48,10 +45,7 @@ poetry install
 
 ### Option 1: Using Azure TTS
 
-1. Create an Azure account at https://azure.microsoft.com
-2. Create a Speech Service resource in Azure Portal
-3. Get your subscription key and region from the Azure dashboard
-4. Set environment variables:
+Set environment variables and run:
 
 ```bash
 export AZURE_SPEECH_KEY="your-subscription-key"
@@ -60,10 +54,18 @@ export AZURE_SPEECH_REGION="your-region"
 epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural
 ```
 
+**Where to get credentials:**
+- Create an Azure account at https://azure.microsoft.com
+- Create a Speech Service resource in Azure Portal
+- Get your subscription key and region from the dashboard
+
+**Available voices:**
+- Voice list: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts#voice-styles-and-roles
+- Voice gallery (preview): https://speech.microsoft.com/portal/voicegallery
+
 ### Option 2: Using Doubao TTS
 
-1. Get your Doubao access token and API base URL
-2. Set environment variables:
+Set environment variables and run:
 
 ```bash
 export DOUBAO_ACCESS_TOKEN="your-access-token"
@@ -71,6 +73,12 @@ export DOUBAO_BASE_URL="your-api-base-url"
 
 epub2speech input.epub output.m4b --voice zh_male_lengkugege_emo_v2_mars_bigtts
 ```
+
+**Where to get credentials:**
+- Get your Doubao access token and API base URL from Volcengine console
+
+**Available voices:** https://www.volcengine.com/docs/6561/1257544
+_(Find voice IDs in the Doubao TTS documentation)_
 
 ### Provider Auto-Detection
 
@@ -101,7 +109,7 @@ epub2speech input.epub output.m4b --voice ja-JP-NanamiNeural --quiet
 
 ### Azure TTS Configuration
 
-You can pass Azure credentials via command-line arguments instead of environment variables:
+Pass credentials via command-line arguments:
 
 ```bash
 epub2speech input.epub output.m4b \
@@ -110,11 +118,9 @@ epub2speech input.epub output.m4b \
   --azure-region YOUR_REGION
 ```
 
-Available Azure voices: [Azure Neural Voices](https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support#neural-voices)
-
 ### Doubao TTS Configuration
 
-You can pass Doubao credentials via command-line arguments:
+Pass credentials via command-line arguments:
 
 ```bash
 epub2speech input.epub output.m4b \

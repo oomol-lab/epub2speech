@@ -16,10 +16,7 @@
 
 ## 基本用法
 
-将 EPUB 文件转换为有声读物（自动检测提供商）：
-
 ```bash
-# 首先设置 TTS 提供商凭据（参见快速开始部分）
 epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural
 ```
 
@@ -48,10 +45,7 @@ poetry install
 
 ### 选项 1：使用 Azure TTS
 
-1. 在 https://azure.microsoft.com 创建 Azure 账户
-2. 在 Azure 门户中创建语音服务资源
-3. 从 Azure 仪表板获取您的订阅密钥和区域
-4. 设置环境变量：
+设置环境变量并运行：
 
 ```bash
 export AZURE_SPEECH_KEY="您的订阅密钥"
@@ -60,10 +54,18 @@ export AZURE_SPEECH_REGION="您的区域"
 epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural
 ```
 
+**获取凭据：**
+- 在 https://azure.microsoft.com 创建 Azure 账户
+- 在 Azure 门户中创建语音服务资源
+- 从仪表板获取订阅密钥和区域
+
+**可用语音：**
+- 语音列表：https://learn.microsoft.com/zh-cn/azure/ai-services/speech-service/language-support?tabs=tts#voice-styles-and-roles
+- 语音库（试听）：https://speech.microsoft.com/portal/voicegallery
+
 ### 选项 2：使用豆包 TTS
 
-1. 获取豆包访问令牌和 API 基础 URL
-2. 设置环境变量：
+设置环境变量并运行：
 
 ```bash
 export DOUBAO_ACCESS_TOKEN="您的访问令牌"
@@ -71,6 +73,12 @@ export DOUBAO_BASE_URL="您的 API 基础 URL"
 
 epub2speech input.epub output.m4b --voice zh_male_lengkugege_emo_v2_mars_bigtts
 ```
+
+**获取凭据：**
+- 从火山引擎控制台获取豆包访问令牌和 API 基础 URL
+
+**可用语音：** https://www.volcengine.com/docs/6561/1257544?lang=zh
+_（在豆包 TTS 文档中查找语音 ID）_
 
 ### 提供商自动检测
 
@@ -101,7 +109,7 @@ epub2speech input.epub output.m4b --voice ja-JP-NanamiNeural --quiet
 
 ### Azure TTS 配置
 
-您可以通过命令行参数传递 Azure 凭据，而不是使用环境变量：
+通过命令行参数传递凭据：
 
 ```bash
 epub2speech input.epub output.m4b \
@@ -110,11 +118,9 @@ epub2speech input.epub output.m4b \
   --azure-region YOUR_REGION
 ```
 
-可用的 Azure 语音：[Azure 神经语音](https://docs.microsoft.com/zh-cn/azure/cognitive-services/speech-service/language-support#neural-voices)
-
 ### 豆包 TTS 配置
 
-您可以通过命令行参数传递豆包凭据：
+通过命令行参数传递凭据：
 
 ```bash
 epub2speech input.epub output.m4b \
