@@ -1,6 +1,0 @@
-{
-  "azure_speech": {
-    "subscription_key": "YOUR_AZURE_SPEECH_SUBSCRIPTION_KEY_HERE",
-    "region": "YOUR_AZURE_SPEECH_REGION_HERE"
-  }
-}

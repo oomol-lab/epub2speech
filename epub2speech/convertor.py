@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Generator
 
 from PIL import Image
 
@@ -45,28 +45,21 @@ class _EpubToSpeechConverter:
         self._epub_picker = EpubPicker(epub_path)
         self._chapter_tts = ChapterTTS(tts_protocol=tts_protocol)
         self._m4b_generator = M4BGenerator()
+        assert max_chapters is None or max_chapters >= 1, "max_chapters must be at least 1"
 
     def convert(self) -> Path | None:
         chapters = list(self._epub_picker.get_nav_items())
-        if self._max_chapters is not None:
-            chapters = chapters[: self._max_chapters]
         if not chapters:
             return None
 
         chapter_infos: list[ChapterInfo] = []
+        for chapter_info in self._generate_chapter_infos(chapters):
+            chapter_infos.append(chapter_info)
+            if self._max_chapters is not None and len(chapter_infos) >= self._max_chapters:
+                break
 
-        for i, (chapter_title, chapter_href) in enumerate(chapters):
-            progress = ConversionProgress(current_chapter=i, total_chapters=len(chapters), chapter_title=chapter_title)
-            if self._progress_callback:
-                self._progress_callback(progress)
-
-            audio_file = self._convert_chapter_to_audio(
-                chapter_title,
-                chapter_href,
-                i,
-            )
-            if audio_file:
-                chapter_infos.append(ChapterInfo(title=chapter_title, audio_file=audio_file))
+        if not chapter_infos:
+            return None
 
         cover_bytes = self._epub_picker.cover_bytes
         cover_path: Path | None = None
@@ -83,6 +76,20 @@ class _EpubToSpeechConverter:
             cover_path=cover_path,
         )
         return self._output_path
+
+    def _generate_chapter_infos(self, chapters: list[tuple[str, str]]) -> Generator[ChapterInfo, None, None]:
+        for i, (chapter_title, chapter_href) in enumerate(chapters):
+            progress = ConversionProgress(current_chapter=i, total_chapters=len(chapters), chapter_title=chapter_title)
+            if self._progress_callback:
+                self._progress_callback(progress)
+
+            audio_file = self._convert_chapter_to_audio(
+                chapter_title=chapter_title,
+                chapter_href=chapter_href,
+                chapter_index=i,
+            )
+            if audio_file:
+                yield ChapterInfo(title=chapter_title, audio_file=audio_file)
 
     def _convert_chapter_to_audio(
         self,

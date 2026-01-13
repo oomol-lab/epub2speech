@@ -50,6 +50,7 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pylint>=3.0.0",
+    "python-dotenv>=1.0.0,<2.0.0",
 ]
 
 [build-system]
@@ -64,6 +65,7 @@ packages = [
 [tool.poetry.group.dev.dependencies]
 pyright = "^1.1.407"
 pylint = "^4.0.4"
+python-dotenv = "^1.0.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

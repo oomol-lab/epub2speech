@@ -16,19 +16,15 @@ class TestM4BGeneration(unittest.TestCase):
 
     def test_epub_to_m4b_conversion(self):
         """Test complete EPUB to M4B conversion using real EPUB file"""
-        config_path = Path(__file__).parent / "tts_config.json"
+        config = TTSConfig()
 
-        if not config_path.exists():
-            print("⚠️  TTS config file not found, skipping M4B generation test")
-            print("To run TTS tests locally, copy tts_config.json.template to tts_config.json")
-            print("and fill in your Azure Speech credentials")
-            self.skipTest("TTS config file not found")
-
-        config = TTSConfig(config_path)
-        self.assertTrue(config.validate_config(), "TTS configuration is invalid")
+        if not config.validate_config():
+            print("⚠️  Azure Speech environment variables not configured, skipping M4B generation test")
+            print("To run TTS tests, configure AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in .env file")
+            self.skipTest("Azure Speech environment variables not configured")
 
         azure_config = config.get_azure_config()
-        self.assertIsNotNone(azure_config, "No Azure configuration found in config file")
+        self.assertIsNotNone(azure_config, "No Azure configuration found in environment variables")
 
         subscription_key = azure_config["subscription_key"]
         region = azure_config["region"]
@@ -75,12 +71,11 @@ class TestM4BGeneration(unittest.TestCase):
 
     def test_epub_to_m4b_with_different_voices(self):
         """Test M4B generation with different voice parameters"""
-        config_path = Path(__file__).parent / "tts_config.json"
+        config = TTSConfig()
 
-        if not config_path.exists():
-            self.skipTest("TTS config file not found")
+        if not config.validate_config():
+            self.skipTest("Azure Speech environment variables not configured")
 
-        config = TTSConfig(config_path)
         azure_config = config.get_azure_config()
 
         tts_provider = AzureTextToSpeech(

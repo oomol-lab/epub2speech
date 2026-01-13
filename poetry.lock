@@ -1655,6 +1655,21 @@ pytest = ">=7"
 testing = ["process-tests", "pytest-xdist", "virtualenv"]
 
 [[package]]
+name = "python-dotenv"
+version = "1.2.1"
+description = "Read key-value pairs from a .env file and set them as environment variables"
+optional = false
+python-versions = ">=3.9"
+groups = ["main", "dev"]
+files = [
+    {file = "python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61"},
+    {file = "python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6"},
+]
+
+[package.extras]
+cli = ["click (>=5.0)"]
+
+[[package]]
 name = "requests"
 version = "2.32.5"
 description = "Python HTTP for Humans."
@@ -2359,9 +2374,9 @@ files = [
 ]
 
 [extras]
-dev = ["pylint", "pytest", "pytest-cov"]
+dev = ["pylint", "pytest", "pytest-cov", "python-dotenv"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "431006f98ddef7035cb6ca3449f8782ac17707fd84463ba8fb26eb64469f2819"
+content-hash = "aa95a4a597d00b7a12c3146209c7c2f539bddbe4428fe710b652519b571a4a4f"
