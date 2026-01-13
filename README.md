@@ -139,6 +139,41 @@ epub2speech input.epub output.m4b \
 
 ## Development
 
+### Using as a Library
+
+You can integrate epub2speech into your own Python application:
+
+```python
+from pathlib import Path
+from epub2speech import convert_epub_to_m4b, ConversionProgress
+from epub2speech.tts.azure_provider import AzureTextToSpeech
+# Or use: from epub2speech.tts.doubao_provider import DoubaoTextToSpeech
+
+# Initialize TTS provider
+tts = AzureTextToSpeech(
+    subscription_key="your-key",
+    region="your-region"
+)
+
+# Optional: Define progress callback
+def on_progress(progress: ConversionProgress):
+    print(f"{progress.progress:.1f}% - Chapter {progress.current_chapter}/{progress.total_chapters}")
+
+# Convert EPUB to M4B
+result = convert_epub_to_m4b(
+    epub_path=Path("input.epub"),
+    workspace=Path("./workspace"),
+    output_path=Path("output.m4b"),
+    tts_protocol=tts,
+    voice="zh-CN-XiaoxiaoNeural",
+    max_chapters=None,  # Optional: limit chapters
+    progress_callback=on_progress  # Optional
+)
+
+if result:
+    print(f"Success: {result}")
+```
+
 ### Running Tests
 
 ```bash
@@ -162,8 +197,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/) for Azure TTS provider
-- [Doubao](https://www.volcengine.com/product/doubao) for Doubao TTS provider
 - [ebooklib](https://github.com/aerkalov/ebooklib) for EPUB parsing
 - [FFmpeg](https://ffmpeg.org/) for audio processing
 - [spaCy](https://spacy.io/) for natural language processing

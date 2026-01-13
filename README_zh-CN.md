@@ -139,6 +139,41 @@ epub2speech input.epub output.m4b \
 
 ## 开发
 
+### 作为库使用
+
+您可以将 epub2speech 集成到自己的 Python 应用程序中：
+
+```python
+from pathlib import Path
+from epub2speech import convert_epub_to_m4b, ConversionProgress
+from epub2speech.tts.azure_provider import AzureTextToSpeech
+# 或使用：from epub2speech.tts.doubao_provider import DoubaoTextToSpeech
+
+# 初始化 TTS 提供商
+tts = AzureTextToSpeech(
+    subscription_key="your-key",
+    region="your-region"
+)
+
+# 可选：定义进度回调
+def on_progress(progress: ConversionProgress):
+    print(f"{progress.progress:.1f}% - 章节 {progress.current_chapter}/{progress.total_chapters}")
+
+# 转换 EPUB 到 M4B
+result = convert_epub_to_m4b(
+    epub_path=Path("input.epub"),
+    workspace=Path("./workspace"),
+    output_path=Path("output.m4b"),
+    tts_protocol=tts,
+    voice="zh-CN-XiaoxiaoNeural",
+    max_chapters=None,  # 可选：限制章节数
+    progress_callback=on_progress  # 可选
+)
+
+if result:
+    print(f"成功：{result}")
+```
+
 ### 运行测试
 
 ```bash
@@ -162,8 +197,6 @@ python test.py --test test_tts
 
 ## 致谢
 
-- [Azure 认知服务](https://azure.microsoft.com/services/cognitive-services/) 提供 Azure TTS 提供商
-- [豆包](https://www.volcengine.com/product/doubao) 提供豆包 TTS 提供商
 - [ebooklib](https://github.com/aerkalov/ebooklib) 用于 EPUB 解析
 - [FFmpeg](https://ffmpeg.org/) 用于音频处理
 - [spaCy](https://spacy.io/) 用于自然语言处理
