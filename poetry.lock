@@ -2379,4 +2379,4 @@ dev = ["pylint", "pytest", "pytest-cov", "python-dotenv"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "aa95a4a597d00b7a12c3146209c7c2f539bddbe4428fe710b652519b571a4a4f"
+content-hash = "f4bf74a9f5c0a5d43ad3f8434eff2ad683228dbc688ca28bdd53d2f5953ec3fb"

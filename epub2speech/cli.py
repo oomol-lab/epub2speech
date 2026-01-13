@@ -168,7 +168,7 @@ Examples:
     parser.add_argument(
         "--provider",
         type=str,
-        choices=[sorted(_PROVIDER_CONFIGS.keys())],
+        choices=list(_PROVIDER_CONFIGS.keys()),
         help="TTS provider to use (auto-detected if not specified)",
     )
 
