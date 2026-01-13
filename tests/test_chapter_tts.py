@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
 from epub2speech.chapter_tts import ChapterTTS
-from epub2speech.tts import TextToSpeechProtocol
+from epub2speech.tts.protocol import TextToSpeechProtocol
 
 
 class TestChapterTTS(unittest.TestCase):
