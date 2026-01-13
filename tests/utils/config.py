@@ -26,12 +26,7 @@ class TTSConfig:
         region = os.getenv("AZURE_SPEECH_REGION")
 
         if subscription_key and region:
-            self._config = {
-                "azure_speech": {
-                    "subscription_key": subscription_key,
-                    "region": region
-                }
-            }
+            self._config = {"azure_speech": {"subscription_key": subscription_key, "region": region}}
             logger.info("Configuration loaded from environment variables")
         else:
             logger.warning("Azure Speech configuration not found in environment variables")
