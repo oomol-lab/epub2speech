@@ -1,5 +1,12 @@
 <div align=center>
   <h1>EPUB to Speech</h1>
+  <p>
+    <a href="https://github.com/oomol-lab/epub2speech/actions/workflows/merge-build.yml" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/oomol-lab/epub2speech/merge-build.yml?branch=main&label=build" alt="build" /></a>
+    <a href="https://pypi.org/project/epub2speech/" target="_blank"><img src="https://img.shields.io/badge/pip_install-epub2speech-blue" alt="pip install epub2speech" /></a>
+    <a href="https://pypi.org/project/epub2speech/" target="_blank"><img src="https://img.shields.io/pypi/v/epub2speech.svg" alt="pypi epub2speech" /></a>
+    <a href="https://pypi.org/project/epub2speech/" target="_blank"><img src="https://img.shields.io/pypi/pyversions/epub2speech.svg" alt="python versions" /></a>
+    <a href="https://github.com/oomol-lab/epub2speech/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/github/license/oomol-lab/epub2speech" alt="license" /></a>
+  </p>
   <p>English | <a href="./README_zh-CN.md">中文</a></p>
 </div>
 
