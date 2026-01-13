@@ -13,6 +13,13 @@ if [ ! -f "$PROJECT_ROOT/pyproject.toml" ]; then
     exit 1
 fi
 
+# 加载 .env 文件（如果存在）
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    set -a
+    source "$PROJECT_ROOT/.env"
+    set +a
+fi
+
 # 使用 poetry 运行 CLI
 cd "$PROJECT_ROOT"
 poetry run python -m epub2speech.cli "$@"
