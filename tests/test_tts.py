@@ -15,12 +15,9 @@ class TestTTSIntegration(unittest.TestCase):
 
     def setUp(self):
         """Set up test configuration"""
-        self.config_path = Path(__file__).parent / "tts_config.json"
-        if not self.config_path.exists():
-            self.skipTest("TTS config file not found")
-
-        config = TTSConfig(self.config_path)
-        self.assertTrue(config.validate_config())
+        config = TTSConfig()
+        if not config.validate_config():
+            self.skipTest("Azure Speech environment variables not configured (AZURE_SPEECH_KEY, AZURE_SPEECH_REGION)")
 
         azure_config = config.get_azure_config()
         self.tts = AzureTextToSpeech(subscription_key=azure_config["subscription_key"], region=azure_config["region"])
