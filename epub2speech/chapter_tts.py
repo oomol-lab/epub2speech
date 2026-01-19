@@ -18,10 +18,13 @@ SENTENCE_LEVEL = 2
 
 class ChapterTTS:
     def __init__(
-        self, tts_protocol: TextToSpeechProtocol, max_segment_length: int = 500, language_model: Optional[str] = None
+        self,
+        tts_protocol: TextToSpeechProtocol,
+        max_segment_length: int = 500,
+        language_model: str | None = None,
     ):
-        self.tts_protocol = tts_protocol
-        self.max_segment_length = max_segment_length
+        self._tts_protocol = tts_protocol
+        self._max_segment_length = max_segment_length
         self._nlp = self._load_language_model(language_model)
 
     def _load_language_model(self, language_model: Optional[str]) -> Language:
@@ -58,7 +61,11 @@ class ChapterTTS:
             session_id = str(uuid.uuid4())[:8]
             temp_audio_path = workspace_path / f"{session_id}_segment_{i:04d}.wav"
 
-            self.tts_protocol.convert_text_to_audio(text=segment, output_path=temp_audio_path, voice=voice)
+            self._tts_protocol.convert_text_to_audio(
+                text=segment,
+                output_path=temp_audio_path,
+                voice=voice,
+            )
             if not temp_audio_path.exists():
                 continue
 
@@ -146,11 +153,16 @@ class ChapterTTS:
             yield fragment_resource
 
     def _split_by_resource_segmentation(self, resources: List[Resource]) -> Generator[str, None, None]:
-        max_byte_length = self.max_segment_length * 3
+        max_byte_length = self._max_segment_length * 3
         groups = list(
-            split(iter(resources), max_segment_count=max_byte_length, border_incision=1, gap_rate=0.0, tail_rate=0.0)
+            split(
+                iter(resources),
+                max_segment_count=max_byte_length,
+                border_incision=1,
+                gap_rate=0.0,
+                tail_rate=0.0,
+            )
         )
-
         for group in groups:
             segment_chars = []
             for item in group.body:
