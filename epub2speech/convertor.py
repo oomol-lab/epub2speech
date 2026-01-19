@@ -32,6 +32,7 @@ class _EpubToSpeechConverter:
         workspace: PathLike,
         output_path: PathLike,
         max_chapters: int | None,
+        max_tts_segment_chars: int,
         tts_protocol: TextToSpeechProtocol,
         progress_callback: Callable[[ConversionProgress], None] | None = None,
     ):
@@ -40,10 +41,9 @@ class _EpubToSpeechConverter:
         self._workspace_path: Path = Path(workspace)
         self._output_path: Path = Path(output_path)
         self._max_chapters: int | None = max_chapters
-        self._tts_protocol: TextToSpeechProtocol = tts_protocol
         self._progress_callback: Callable[[ConversionProgress], None] | None = progress_callback
         self._epub_picker = EpubPicker(epub_path)
-        self._chapter_tts = ChapterTTS(tts_protocol=tts_protocol)
+        self._chapter_tts = ChapterTTS(tts_protocol, max_tts_segment_chars)
         self._m4b_generator = M4BGenerator()
         assert max_chapters is None or max_chapters >= 1, "max_chapters must be at least 1"
 
@@ -157,6 +157,7 @@ def convert_epub_to_m4b(
     tts_protocol: TextToSpeechProtocol,
     voice: str,
     max_chapters: int | None = None,
+    max_tts_segment_chars: int = 500,
     progress_callback: Callable[[ConversionProgress], None] | None = None,
 ) -> Path | None:
     converter = _EpubToSpeechConverter(
@@ -165,6 +166,7 @@ def convert_epub_to_m4b(
         output_path=output_path,
         tts_protocol=tts_protocol,
         max_chapters=max_chapters,
+        max_tts_segment_chars=max_tts_segment_chars,
         voice=voice,
         progress_callback=progress_callback,
     )

@@ -112,6 +112,9 @@ epub2speech input.epub output.m4b --voice zh-CN-YunxiNeural --workspace /tmp/my-
 
 # Quiet mode (no progress output)
 epub2speech input.epub output.m4b --voice ja-JP-NanamiNeural --quiet
+
+# Set maximum characters per TTS segment (default: 500)
+epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --max-tts-segment-chars 800
 ```
 
 ### Azure TTS Configuration
@@ -174,6 +177,7 @@ result = convert_epub_to_m4b(
     tts_protocol=tts,
     voice="zh-CN-XiaoxiaoNeural",
     max_chapters=None,  # Optional: limit chapters
+    max_tts_segment_chars=500,  # Optional: max characters per TTS segment (default: 500)
     progress_callback=on_progress  # Optional
 )
 
