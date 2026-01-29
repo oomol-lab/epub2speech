@@ -47,11 +47,11 @@ class ChapterTTS:
         workspace_path: Path,
         voice: str,
         progress_callback: Optional[Callable[[int, int], None]] = None,
-    ) -> None:
+    ) -> Path | None:
         # TODO: 重构 temp 逻辑，不需要 temp 这个概念了
         segments = list(self.split_text_into_segments(text))
         if not segments:
-            return
+            return None
 
         audio_segments: list[tuple[np.ndarray, int]] = []
         for i, segment in enumerate(segments):
@@ -74,19 +74,22 @@ class ChapterTTS:
             audio_data, sample_rate = sf.read(temp_audio_path)
             audio_segments.append((audio_data, sample_rate))
 
-        if audio_segments:
-            _, first_sample_rate = audio_segments[0]
-            resampled_segments = []
-            for audio_data, sample_rate in audio_segments:
-                if sample_rate != first_sample_rate:
-                    resampled_length = int(len(audio_data) * first_sample_rate / sample_rate)
-                    resampled_audio = resample(audio_data, resampled_length)
-                    resampled_segments.append(resampled_audio)
-                else:
-                    resampled_segments.append(audio_data)
+        if not audio_segments:
+            return None
 
-            final_audio = np.concatenate(resampled_segments)
-            sf.write(output_path, final_audio, first_sample_rate)
+        _, first_sample_rate = audio_segments[0]
+        resampled_segments = []
+        for audio_data, sample_rate in audio_segments:
+            if sample_rate != first_sample_rate:
+                resampled_length = int(len(audio_data) * first_sample_rate / sample_rate)
+                resampled_audio = resample(audio_data, resampled_length)
+                resampled_segments.append(resampled_audio)
+            else:
+                resampled_segments.append(audio_data)
+
+        final_audio = np.concatenate(resampled_segments)
+        sf.write(output_path, final_audio, first_sample_rate)
+        return output_path
 
     def split_text_into_segments(self, text: str) -> Generator[str, None, None]:
         text = text.strip()

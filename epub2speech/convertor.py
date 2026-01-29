@@ -106,13 +106,12 @@ class _EpubToSpeechConverter:
             return None
 
         chapter_path.mkdir(exist_ok=True, parents=True)
-        self._chapter_tts.process_chapter(
+        return self._chapter_tts.process_chapter(
             text=chapter_text,
             output_path=audio_path,
             workspace_path=chapter_path,
             voice=self._voice,
         )
-        return audio_path
 
     def _save_cover_with_proper_extension(self, cover_bytes: bytes) -> Path:
         try:
