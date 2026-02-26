@@ -19,6 +19,7 @@ Convert EPUB e-books into high-quality audiobooks using multiple Text-to-Speech 
 - **🔄 Auto-Detection**: Automatically detects configured provider
 - **🌍 Multi-Language Support**: Supports various languages and voices
 - **📱 M4B Output**: Generates standard M4B audiobook format with chapter navigation
+- **🧹 Noise Filtering**: Automatically removes common reading noise (table-of-contents lines, decorative separators, isolated page numbers)
 - **🔧 CLI Interface**: Easy-to-use command-line tool with progress tracking
 
 ## Basic Usage
@@ -115,6 +116,12 @@ epub2speech input.epub output.m4b --voice ja-JP-NanamiNeural --quiet
 
 # Set maximum characters per TTS segment (default: 500)
 epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --max-tts-segment-chars 800
+
+# Use more conservative cleaning (keep more short lines)
+epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --cleaning-strictness conservative
+
+# Dump per-chapter cleaning reports into workspace
+epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --dump-cleaning-report
 ```
 
 ### Azure TTS Configuration
@@ -178,6 +185,8 @@ result = convert_epub_to_m4b(
     voice="zh-CN-XiaoxiaoNeural",
     max_chapters=None,  # Optional: limit chapters
     max_tts_segment_chars=500,  # Optional: max characters per TTS segment (default: 500)
+    cleaning_strictness="balanced",  # Optional: conservative / balanced / aggressive
+    dump_cleaning_report=False,  # Optional: write cleaning_report.json per chapter
     progress_callback=on_progress  # Optional
 )
 

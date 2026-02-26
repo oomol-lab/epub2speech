@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, NoReturn
 
 from .convertor import ConversionProgress, convert_epub_to_m4b
+from .extractor import TEXT_CLEANING_STRICTNESS_LEVELS
 from .tts.protocol import TextToSpeechProtocol
 
 
@@ -177,6 +178,18 @@ Examples:
     parser.add_argument("--voice", type=str, help="TTS voice name (provider-specific)")
 
     parser.add_argument("--max-chapters", type=int, help="Maximum number of chapters to convert (optional)")
+    parser.add_argument(
+        "--cleaning-strictness",
+        type=str,
+        choices=list(TEXT_CLEANING_STRICTNESS_LEVELS),
+        default="balanced",
+        help="Cleaning aggressiveness before TTS (conservative, balanced, aggressive)",
+    )
+    parser.add_argument(
+        "--dump-cleaning-report",
+        action="store_true",
+        help="Write cleaning_report.json for each chapter under workspace",
+    )
 
     parser.add_argument("--workspace", type=str, help="Workspace directory path (default: system temp directory)")
 
@@ -249,6 +262,9 @@ Examples:
                 print(f"Using voice: {args.voice}")
             if args.max_chapters:
                 print(f"Maximum chapters: {args.max_chapters}")
+            print(f"Cleaning strictness: {args.cleaning_strictness}")
+            if args.dump_cleaning_report:
+                print("Cleaning report dump: enabled")
             print()
 
             result_path = convert_epub_to_m4b(
@@ -258,6 +274,8 @@ Examples:
                 tts_protocol=tts_provider,
                 voice=args.voice,
                 max_chapters=args.max_chapters,
+                cleaning_strictness=args.cleaning_strictness,
+                dump_cleaning_report=args.dump_cleaning_report,
                 progress_callback=None if args.quiet else progress_callback,
             )
             if result_path:

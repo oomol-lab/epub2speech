@@ -5,15 +5,30 @@ from typing import Any, Generator, Literal
 
 from ebooklib import ITEM_COVER, ITEM_IMAGE, ITEM_NAVIGATION, epub
 
-from .extractor import extract_text_from_html
+from .extractor import (
+    TEXT_CLEANING_STRICTNESS_LEVELS,
+    extract_text_from_html_with_report,
+)
 
 
 class EpubPicker:
-    def __init__(self, file_path: PathLike) -> None:
+    def __init__(self, file_path: PathLike, cleaning_strictness: str = "balanced") -> None:
+        if cleaning_strictness not in TEXT_CLEANING_STRICTNESS_LEVELS:
+            raise ValueError(f"Unsupported cleaning strictness: {cleaning_strictness}")
         self._book: epub.EpubBook = epub.read_epub(file_path)
         nav_item, epub_version = self._determine_epub_type()
         self._nav_item: Any = nav_item
         self._epub_version: Literal["EPUB2", "EPUB3"] | None = epub_version
+        self._cleaning_strictness = cleaning_strictness
+
+    def _empty_report(self, strictness: str) -> dict:
+        return {
+            "strictness": strictness,
+            "total_blocks": 0,
+            "kept_blocks": 0,
+            "removed_blocks": 0,
+            "removed_samples": [],
+        }
 
     def _determine_epub_type(self) -> tuple[Any | None, Literal["EPUB2", "EPUB3"] | None]:
         for item in self._book.get_items_of_type(ITEM_NAVIGATION):
@@ -91,7 +106,19 @@ class EpubPicker:
         else:
             yield from self._generate_virtual_navigation()
 
-    def extract_text(self, href: str) -> str:
+    def extract_text(self, href: str, cleaning_strictness: str | None = None) -> str:
+        text, _ = self.extract_text_with_report(href=href, cleaning_strictness=cleaning_strictness)
+        return text
+
+    def extract_text_with_report(
+        self,
+        href: str,
+        cleaning_strictness: str | None = None,
+    ) -> tuple[str, dict]:
+        strictness = cleaning_strictness or self._cleaning_strictness
+        if strictness not in TEXT_CLEANING_STRICTNESS_LEVELS:
+            raise ValueError(f"Unsupported cleaning strictness: {strictness}")
+
         base_href = href.split("#")[0] if "#" in href else href
 
         doc_item = self._book.get_item_with_href(base_href)
@@ -100,16 +127,16 @@ class EpubPicker:
             doc_item = self._book.get_item_with_href(href)
 
         if doc_item is None:
-            return ""
+            return "", self._empty_report(strictness)
 
         content = doc_item.get_content()
         if content is None:
-            return ""
+            return "", self._empty_report(strictness)
 
         if isinstance(content, bytes):
             content = content.decode("utf-8", errors="ignore")
 
-        return extract_text_from_html(content)
+        return extract_text_from_html_with_report(content, cleaning_strictness=strictness)
 
     def _parse_epub2_ncx(self, content: str) -> Generator[tuple[str, str], None, None]:
         root = ET.fromstring(content)

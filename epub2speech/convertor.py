@@ -1,4 +1,5 @@
 import io
+import json
 import re
 from dataclasses import dataclass
 from os import PathLike
@@ -33,6 +34,8 @@ class _EpubToSpeechConverter:
         output_path: PathLike,
         max_chapters: int | None,
         max_tts_segment_chars: int,
+        cleaning_strictness: str,
+        dump_cleaning_report: bool,
         tts_protocol: TextToSpeechProtocol,
         progress_callback: Callable[[ConversionProgress], None] | None = None,
     ):
@@ -42,7 +45,9 @@ class _EpubToSpeechConverter:
         self._output_path: Path = Path(output_path)
         self._max_chapters: int | None = max_chapters
         self._progress_callback: Callable[[ConversionProgress], None] | None = progress_callback
-        self._epub_picker = EpubPicker(epub_path)
+        self._epub_picker = EpubPicker(epub_path, cleaning_strictness=cleaning_strictness)
+        self._cleaning_strictness = cleaning_strictness
+        self._dump_cleaning_report = dump_cleaning_report
         self._chapter_tts = ChapterTTS(tts_protocol, max_tts_segment_chars)
         self._m4b_generator = M4BGenerator()
         assert max_chapters is None or max_chapters >= 1, "max_chapters must be at least 1"
@@ -100,12 +105,20 @@ class _EpubToSpeechConverter:
         chapter_prefix = f"chapter_{(chapter_index + 1):03d}_{self._sanitize_filename(chapter_title)}"
         chapter_path = self._workspace_path / chapter_prefix
         audio_path = chapter_path / f"{chapter_prefix}.wav"
+        chapter_path.mkdir(exist_ok=True, parents=True)
 
-        chapter_text = self._epub_picker.extract_text(chapter_href)
+        chapter_text, cleaning_report = self._epub_picker.extract_text_with_report(
+            chapter_href,
+            cleaning_strictness=self._cleaning_strictness,
+        )
         if not chapter_text.strip():
             return None
 
-        chapter_path.mkdir(exist_ok=True, parents=True)
+        if self._dump_cleaning_report:
+            report_path = chapter_path / "cleaning_report.json"
+            with open(report_path, "w", encoding="utf-8") as f:
+                json.dump(cleaning_report, f, ensure_ascii=False, indent=2)
+
         self._chapter_tts.process_chapter(
             text=chapter_text,
             output_path=audio_path,
@@ -158,6 +171,8 @@ def convert_epub_to_m4b(
     voice: str,
     max_chapters: int | None = None,
     max_tts_segment_chars: int = 500,
+    cleaning_strictness: str = "balanced",
+    dump_cleaning_report: bool = False,
     progress_callback: Callable[[ConversionProgress], None] | None = None,
 ) -> Path | None:
     converter = _EpubToSpeechConverter(
@@ -167,6 +182,8 @@ def convert_epub_to_m4b(
         tts_protocol=tts_protocol,
         max_chapters=max_chapters,
         max_tts_segment_chars=max_tts_segment_chars,
+        cleaning_strictness=cleaning_strictness,
+        dump_cleaning_report=dump_cleaning_report,
         voice=voice,
         progress_callback=progress_callback,
     )
