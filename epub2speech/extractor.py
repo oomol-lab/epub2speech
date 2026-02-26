@@ -474,29 +474,54 @@ def _finalize_keep_decision(blocks: list[_Block], cleaning_strictness: str) -> N
 def _serialize_report(blocks: list[_Block], cleaning_strictness: str) -> dict:
     removed_blocks = [block for block in blocks if not block.keep]
     kept_blocks = [block for block in blocks if block.keep]
+    raw_chars = sum(len(block.text) for block in blocks if block.text)
+    kept_chars = sum(len(block.text) for block in kept_blocks if block.text)
+    removed_chars = max(raw_chars - kept_chars, 0)
+
+    reason_counts: dict[str, int] = {}
+    removed_reason_counts: dict[str, int] = {}
+    for block in blocks:
+        reason = block.reason or "unspecified"
+        reason_counts[reason] = reason_counts.get(reason, 0) + 1
+    for block in removed_blocks:
+        reason = block.reason or "unspecified"
+        removed_reason_counts[reason] = removed_reason_counts.get(reason, 0) + 1
+
+    def _summarize_block(block: _Block) -> dict:
+        return {
+            "index": block.index,
+            "tag": block.tag,
+            "text": block.text[:200],
+            "classification": block.classification,
+            "reason": block.reason,
+            "score": round(block.score, 3),
+            "link_density": round(block.link_density, 3),
+            "punct_density": round(block.punct_density, 3),
+            "stopword_density": round(block.stopword_density, 3),
+        }
 
     removed_samples = []
     for block in removed_blocks[:20]:
-        removed_samples.append(
-            {
-                "index": block.index,
-                "tag": block.tag,
-                "text": block.text[:200],
-                "classification": block.classification,
-                "reason": block.reason,
-                "score": round(block.score, 3),
-                "link_density": round(block.link_density, 3),
-                "punct_density": round(block.punct_density, 3),
-                "stopword_density": round(block.stopword_density, 3),
-            }
-        )
+        removed_samples.append(_summarize_block(block))
+
+    kept_samples = []
+    for block in kept_blocks[:20]:
+        kept_samples.append(_summarize_block(block))
 
     return {
         "strictness": cleaning_strictness,
         "total_blocks": len(blocks),
         "kept_blocks": len(kept_blocks),
         "removed_blocks": len(removed_blocks),
+        "raw_chars": raw_chars,
+        "kept_chars": kept_chars,
+        "removed_chars": removed_chars,
+        "retention_ratio": round((kept_chars / max(raw_chars, 1)), 6),
         "removed_samples": removed_samples,
+        "kept_samples": kept_samples,
+        "kept_ratio": round((len(kept_blocks) / max(len(blocks), 1)), 6),
+        "removed_reason_counts": removed_reason_counts,
+        "reason_counts": reason_counts,
     }
 
 
@@ -508,9 +533,10 @@ def _clean_with_block_pipeline(text_blocks: list[_Block], cleaning_strictness: s
     _apply_context_reclassification(text_blocks, cleaning_strictness)
     _finalize_keep_decision(text_blocks, cleaning_strictness)
 
-    kept_lines = [block.text for block in text_blocks if block.keep and block.text]
-    cleaned_text = " ".join(kept_lines)
-    cleaned_text = re.sub(r"\s+", " ", cleaned_text).strip()
+    kept_lines = [block.text.strip() for block in text_blocks if block.keep and block.text.strip()]
+    cleaned_text = "\n".join(kept_lines)
+    cleaned_text = re.sub(r"[ \t]+", " ", cleaned_text).strip()
+    cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text)
     report = _serialize_report(text_blocks, cleaning_strictness)
     return cleaned_text, report
 
@@ -582,7 +608,15 @@ def extract_text_from_html_with_report(
             "total_blocks": 0,
             "kept_blocks": 0,
             "removed_blocks": 0,
+            "raw_chars": 0,
+            "kept_chars": 0,
+            "removed_chars": 0,
+            "retention_ratio": 0.0,
             "removed_samples": [],
+            "kept_samples": [],
+            "kept_ratio": 0.0,
+            "removed_reason_counts": {},
+            "reason_counts": {},
         }
 
     return _clean_with_block_pipeline(blocks, cleaning_strictness)

@@ -20,6 +20,7 @@ class EpubPicker:
         self._nav_item: Any = nav_item
         self._epub_version: Literal["EPUB2", "EPUB3"] | None = epub_version
         self._cleaning_strictness = cleaning_strictness
+        self._nav_file_name = (self._nav_item.file_name if self._nav_item and self._nav_item.file_name else "").lower()
 
     def _empty_report(self, strictness: str) -> dict:
         return {
@@ -27,8 +28,56 @@ class EpubPicker:
             "total_blocks": 0,
             "kept_blocks": 0,
             "removed_blocks": 0,
+            "raw_chars": 0,
+            "kept_chars": 0,
+            "removed_chars": 0,
+            "retention_ratio": 0.0,
             "removed_samples": [],
+            "kept_samples": [],
+            "kept_ratio": 0.0,
+            "removed_reason_counts": {},
+            "reason_counts": {},
         }
+
+    def _is_non_content_href(self, href: str) -> bool:
+        normalized = href.split("#")[0].strip().lower()
+        if not normalized:
+            return True
+
+        if self._nav_file_name and normalized == self._nav_file_name:
+            return True
+
+        filename = normalized.rsplit("/", 1)[-1]
+        stem = filename.rsplit(".", 1)[0]
+        normalized_stem = stem.replace("_", "-")
+        non_content_stems = {
+            "nav",
+            "toc",
+            "table-of-contents",
+            "contents",
+            "landmarks",
+            "page-list",
+            "pagelist",
+            "cover",
+            "copyright",
+            "titlepage",
+            "imprint",
+        }
+        if normalized_stem in non_content_stems:
+            return True
+
+        non_content_tokens = {
+            "nav",
+            "toc",
+            "contents",
+            "landmarks",
+            "pagelist",
+            "page-list",
+            "tableofcontents",
+            "table-of-contents",
+        }
+        tokenized = re.sub(r"[^a-z0-9]+", " ", normalized_stem).split()
+        return any(token in non_content_tokens for token in tokenized)
 
     def _determine_epub_type(self) -> tuple[Any | None, Literal["EPUB2", "EPUB3"] | None]:
         for item in self._book.get_items_of_type(ITEM_NAVIGATION):
@@ -93,6 +142,7 @@ class EpubPicker:
         return [str(meta[0]) for meta in metadatas if meta and meta[0]]
 
     def get_nav_items(self) -> Generator[tuple[str, str], None, None]:
+        raw_nav_items: list[tuple[str, str]] = []
         if self._epub_version is not None:
             content = self._nav_item.get_content()
             if content is None:
@@ -100,11 +150,21 @@ class EpubPicker:
             if isinstance(content, bytes):
                 content = content.decode("utf-8", errors="ignore")
             if self._epub_version == "EPUB2":
-                yield from self._parse_epub2_ncx(content)
+                raw_nav_items = list(self._parse_epub2_ncx(content))
             elif self._epub_version == "EPUB3":
-                yield from self._parse_epub3_nav(content)
+                raw_nav_items = list(self._parse_epub3_nav(content))
         else:
-            yield from self._generate_virtual_navigation()
+            raw_nav_items = list(self._generate_virtual_navigation())
+
+        seen_hrefs: set[str] = set()
+        for title, href in raw_nav_items:
+            normalized = href.split("#")[0].strip().lower()
+            if self._is_non_content_href(href):
+                continue
+            if normalized in seen_hrefs:
+                continue
+            seen_hrefs.add(normalized)
+            yield (title, href)
 
     def extract_text(self, href: str, cleaning_strictness: str | None = None) -> str:
         text, _ = self.extract_text_with_report(href=href, cleaning_strictness=cleaning_strictness)
@@ -120,6 +180,8 @@ class EpubPicker:
             raise ValueError(f"Unsupported cleaning strictness: {strictness}")
 
         base_href = href.split("#")[0] if "#" in href else href
+        if self._is_non_content_href(base_href):
+            return "", self._empty_report(strictness)
 
         doc_item = self._book.get_item_with_href(base_href)
 

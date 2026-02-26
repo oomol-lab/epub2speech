@@ -85,8 +85,28 @@ class TestExtractorNoiseCleaning(unittest.TestCase):
         self.assertIn("这里是正文。", text)
         self.assertGreaterEqual(report["removed_blocks"], 1)
         self.assertGreaterEqual(len(report["removed_samples"]), 1)
+        self.assertIn("raw_chars", report)
+        self.assertIn("kept_chars", report)
+        self.assertIn("removed_chars", report)
+        self.assertIn("retention_ratio", report)
+        self.assertIn("kept_samples", report)
+        self.assertIn("reason_counts", report)
+        self.assertIn("removed_reason_counts", report)
         reasons = {sample["reason"] for sample in report["removed_samples"]}
         self.assertIn("noise_pattern", reasons)
+
+    def test_preserves_block_boundaries_as_paragraph_breaks(self):
+        html = """
+        <html><body>
+          <h1>第一章 童年</h1>
+          <p>我们从一份档案开始。</p>
+          <p>姓名：朱元璋。</p>
+        </body></html>
+        """
+
+        text = extract_text_from_html(html, cleaning_strictness="balanced")
+
+        self.assertIn("第一章 童年\n我们从一份档案开始。\n姓名：朱元璋。", text)
 
     def test_balanced_keeps_short_english_content_sentence(self):
         html = """

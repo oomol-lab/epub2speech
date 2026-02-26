@@ -182,6 +182,16 @@ class TestEpubPicker(unittest.TestCase):
 
         print("\n🎉 All books tests passed!")
 
+    def test_non_content_href_detection(self):
+        epub_path = Path(__file__).parent / "assets" / "The little prince.epub"
+        picker = EpubPicker(epub_path)
+
+        self.assertTrue(picker._is_non_content_href("nav.xhtml"))  # pylint: disable=protected-access
+        self.assertTrue(picker._is_non_content_href("text/toc.xhtml"))  # pylint: disable=protected-access
+        self.assertTrue(picker._is_non_content_href("contents.xhtml"))  # pylint: disable=protected-access
+        self.assertFalse(picker._is_non_content_href("7358.xhtml"))  # pylint: disable=protected-access
+        self.assertFalse(picker._is_non_content_href("chap_2.xhtml"))  # pylint: disable=protected-access
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
