@@ -44,7 +44,12 @@ class _EpubToSpeechConverter:
         max_chapters: int | None,
         max_tts_segment_chars: int,
         cleaning_strictness: str,
+        text_normalization_level: str,
         dump_cleaning_report: bool,
+        loudnorm_enabled: bool,
+        loudnorm_i: float,
+        loudnorm_tp: float,
+        loudnorm_lra: float,
         tts_protocol: TextToSpeechProtocol,
         progress_callback: Callable[[ConversionProgress], None] | None = None,
     ):
@@ -57,8 +62,15 @@ class _EpubToSpeechConverter:
         self._epub_picker = EpubPicker(epub_path, cleaning_strictness=cleaning_strictness)
         self._cleaning_strictness = cleaning_strictness
         self._dump_cleaning_report = dump_cleaning_report
-        self._chapter_tts = ChapterTTS(tts_protocol, max_tts_segment_chars)
+        self._chapter_tts = ChapterTTS(
+            tts_protocol,
+            max_tts_segment_chars,
+            text_normalization_level=text_normalization_level,
+        )
         self._m4b_generator = M4BGenerator()
+        self._audio_filter_chain = (
+            f"loudnorm=I={loudnorm_i}:TP={loudnorm_tp}:LRA={loudnorm_lra}" if loudnorm_enabled else None
+        )
         self._document_reports: list[dict] = []
         self._audio_qc_reports: list[dict] = []
         assert max_chapters is None or max_chapters >= 1, "max_chapters must be at least 1"
@@ -96,6 +108,7 @@ class _EpubToSpeechConverter:
             output_path=self._output_path,
             workspace_path=self._workspace_path,
             cover_path=cover_path,
+            audio_filter_chain=self._audio_filter_chain,
         )
         if self._dump_cleaning_report:
             self._write_cleaning_summary(chapters=chapters)
@@ -483,7 +496,12 @@ def convert_epub_to_m4b(
     max_chapters: int | None = None,
     max_tts_segment_chars: int = 500,
     cleaning_strictness: str = "balanced",
+    text_normalization_level: str = "basic",
     dump_cleaning_report: bool = False,
+    loudnorm_enabled: bool = True,
+    loudnorm_i: float = -16.0,
+    loudnorm_tp: float = -1.5,
+    loudnorm_lra: float = 11.0,
     progress_callback: Callable[[ConversionProgress], None] | None = None,
 ) -> Path | None:
     converter = _EpubToSpeechConverter(
@@ -494,7 +512,12 @@ def convert_epub_to_m4b(
         max_chapters=max_chapters,
         max_tts_segment_chars=max_tts_segment_chars,
         cleaning_strictness=cleaning_strictness,
+        text_normalization_level=text_normalization_level,
         dump_cleaning_report=dump_cleaning_report,
+        loudnorm_enabled=loudnorm_enabled,
+        loudnorm_i=loudnorm_i,
+        loudnorm_tp=loudnorm_tp,
+        loudnorm_lra=loudnorm_lra,
         voice=voice,
         progress_callback=progress_callback,
     )

@@ -34,6 +34,7 @@ class M4BGenerator:
         workspace_path: Path,
         cover_path: Path | None = None,
         audio_bitrate: str = "64k",
+        audio_filter_chain: str | None = None,
     ) -> Path:
         output_path = Path(output_path)
         output_dir = output_path.parent
@@ -71,9 +72,10 @@ class M4BGenerator:
         if cover_args:
             ffmpeg_cmd.extend(cover_args)
 
-        ffmpeg_cmd.extend(
-            ["-map", "0:a", "-c:a", "aac", "-b:a", audio_bitrate, "-map_metadata", "1", "-f", "mp4", str(output_path)]
-        )
+        ffmpeg_cmd.extend(["-map", "0:a", "-c:a", "aac", "-b:a", audio_bitrate])
+        if audio_filter_chain:
+            ffmpeg_cmd.extend(["-af", audio_filter_chain])
+        ffmpeg_cmd.extend(["-map_metadata", "1", "-f", "mp4", str(output_path)])
         self._run_command(ffmpeg_cmd, "FFmpeg failed to create M4B")
         return output_path
 

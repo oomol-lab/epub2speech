@@ -10,6 +10,7 @@ from typing import Any, NoReturn
 
 from .convertor import ConversionProgress, convert_epub_to_m4b
 from .extractor import TEXT_CLEANING_STRICTNESS_LEVELS
+from .text_normalizer import TEXT_NORMALIZATION_LEVELS
 from .tts.protocol import TextToSpeechProtocol
 
 
@@ -190,6 +191,21 @@ Examples:
         action="store_true",
         help="Write cleaning_report.json for each chapter under workspace",
     )
+    parser.add_argument(
+        "--text-normalization-level",
+        type=str,
+        choices=list(TEXT_NORMALIZATION_LEVELS),
+        default="basic",
+        help="Text normalization before TTS (off, basic)",
+    )
+    parser.add_argument(
+        "--disable-loudnorm",
+        action="store_true",
+        help="Disable loudness normalization for final M4B audio",
+    )
+    parser.add_argument("--loudnorm-i", type=float, default=-16.0, help="Loudnorm integrated loudness target (LUFS)")
+    parser.add_argument("--loudnorm-tp", type=float, default=-1.5, help="Loudnorm true peak target (dBTP)")
+    parser.add_argument("--loudnorm-lra", type=float, default=11.0, help="Loudnorm loudness range target (LU)")
 
     parser.add_argument("--workspace", type=str, help="Workspace directory path (default: system temp directory)")
 
@@ -263,6 +279,13 @@ Examples:
             if args.max_chapters:
                 print(f"Maximum chapters: {args.max_chapters}")
             print(f"Cleaning strictness: {args.cleaning_strictness}")
+            print(f"Text normalization: {args.text_normalization_level}")
+            if args.disable_loudnorm:
+                print("Loudnorm: disabled")
+            else:
+                print(
+                    f"Loudnorm: enabled (I={args.loudnorm_i}, TP={args.loudnorm_tp}, LRA={args.loudnorm_lra})"
+                )
             if args.dump_cleaning_report:
                 print("Cleaning report dump: enabled")
             print()
@@ -275,7 +298,12 @@ Examples:
                 voice=args.voice,
                 max_chapters=args.max_chapters,
                 cleaning_strictness=args.cleaning_strictness,
+                text_normalization_level=args.text_normalization_level,
                 dump_cleaning_report=args.dump_cleaning_report,
+                loudnorm_enabled=not args.disable_loudnorm,
+                loudnorm_i=args.loudnorm_i,
+                loudnorm_tp=args.loudnorm_tp,
+                loudnorm_lra=args.loudnorm_lra,
                 progress_callback=None if args.quiet else progress_callback,
             )
             if result_path:
