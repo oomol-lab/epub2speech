@@ -45,6 +45,19 @@ class TestExtractorNoiseCleaning(unittest.TestCase):
         self.assertIn("Chapter I", text)
         self.assertIn("This is the real content of the chapter.", text)
 
+    def test_keeps_div_chapter_title_with_following_content(self):
+        html = """
+        <html><body>
+          <div>Chapter I</div>
+          <div>Once when I was six years old I saw a magnificent picture in a book.</div>
+        </body></html>
+        """
+
+        text = extract_text_from_html(html, cleaning_strictness="balanced")
+
+        self.assertIn("Chapter I", text)
+        self.assertIn("Once when I was six years old", text)
+
     def test_drops_pure_page_number_line(self):
         html = """
         <html><body>

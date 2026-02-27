@@ -35,6 +35,13 @@ _TOC_ENTRY_EN_RE = re.compile(
     re.IGNORECASE,
 )
 _LIKELY_TOC_SHORT_EN_RE = re.compile(r"^(chapter|section|part|book)\s+([ivxlcdm]+|\d+)\b", re.IGNORECASE)
+_STANDALONE_CHAPTER_HEADING_EN_RE = re.compile(
+    r"^(chapter|section|part|book|appendix)\s+([ivxlcdm]+|\d+)\b(?:\s+[^\n]{1,80})?$",
+    re.IGNORECASE,
+)
+_STANDALONE_CHAPTER_HEADING_ZH_RE = re.compile(
+    r"^第?[0-9一二三四五六七八九十百千万零〇两]+[章节卷部篇回](?:\s+[^\n]{1,40})?$"
+)
 _WRAPPER_SIDE_PATTERN = r"[-_=~*#]{2,}"
 _GENERIC_WRAPPED_MARKER_RE = re.compile(
     rf"{_WRAPPER_SIDE_PATTERN}\s*(正文|简介|内容简介|正文开始)\s*{_WRAPPER_SIDE_PATTERN}"
@@ -289,6 +296,20 @@ def _english_word_count(text: str) -> int:
     return len(_WORD_RE.findall(text))
 
 
+def _is_standalone_chapter_heading(text: str) -> bool:
+    compact = re.sub(r"\s+", " ", text).strip()
+    if not compact or len(compact) > 120:
+        return False
+    if re.search(r"[。！？!?]", compact):
+        return False
+    if _TOC_ENTRY_ZH_RE.fullmatch(compact) or _TOC_ENTRY_EN_RE.fullmatch(compact) or _TOC_LEADER_RE.fullmatch(compact):
+        return False
+    return bool(
+        _STANDALONE_CHAPTER_HEADING_EN_RE.fullmatch(compact)
+        or _STANDALONE_CHAPTER_HEADING_ZH_RE.fullmatch(compact)
+    )
+
+
 def _normalize_wrapped_decoration_text(text: str) -> tuple[str, bool]:
     had_change = False
 
@@ -378,7 +399,14 @@ def _apply_context_reclassification(blocks: list[_Block], cleaning_strictness: s
         next_cls = blocks[idx + 1].classification if idx + 1 < len(blocks) else None
 
         if block.classification == "short":
-            if block.is_heading and next_cls in ("good", "near_good"):
+            if (
+                _is_standalone_chapter_heading(block.text)
+                and prev_cls not in ("good", "near_good")
+                and next_cls in ("good", "near_good")
+            ):
+                block.classification = "near_good"
+                block.reason = "chapter_heading_with_content_context"
+            elif block.is_heading and next_cls in ("good", "near_good"):
                 block.classification = "near_good"
                 block.reason = "heading_with_content_context"
             elif prev_cls == "good" and next_cls == "good":
