@@ -6,9 +6,14 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
-from epub2speech.convertor import convert_epub_to_m4b
-from epub2speech.tts.azure_provider import AzureTextToSpeech
 from tests.utils.config import TTSConfig
+
+
+def _load_m4b_runtime():
+    from epub2speech.convertor import convert_epub_to_m4b
+    from epub2speech.tts.azure_provider import AzureTextToSpeech
+
+    return convert_epub_to_m4b, AzureTextToSpeech
 
 
 class TestM4BGeneration(unittest.TestCase):
@@ -23,6 +28,7 @@ class TestM4BGeneration(unittest.TestCase):
             print("To run TTS tests, configure AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in .env file")
             self.skipTest("Azure Speech environment variables not configured")
 
+        convert_epub_to_m4b, AzureTextToSpeech = _load_m4b_runtime()
         azure_config = config.get_azure_config()
         self.assertIsNotNone(azure_config, "No Azure configuration found in environment variables")
 
@@ -76,6 +82,7 @@ class TestM4BGeneration(unittest.TestCase):
         if not config.validate_config():
             self.skipTest("Azure Speech environment variables not configured")
 
+        convert_epub_to_m4b, AzureTextToSpeech = _load_m4b_runtime()
         azure_config = config.get_azure_config()
 
         tts_provider = AzureTextToSpeech(

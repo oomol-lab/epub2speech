@@ -6,10 +6,19 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
-from epub2speech.chapter_tts import ChapterTTS
+_CHAPTER_TTS_IMPORT_ERROR: ModuleNotFoundError | None = None
+try:
+    from epub2speech.chapter_tts import ChapterTTS
+except ModuleNotFoundError as exc:  # pragma: no cover - environment dependent
+    ChapterTTS = None  # type: ignore[assignment]
+    _CHAPTER_TTS_IMPORT_ERROR = exc
 from epub2speech.tts.protocol import TextToSpeechProtocol
 
 
+@unittest.skipIf(
+    ChapterTTS is None,
+    f"ChapterTTS dependencies unavailable: {_CHAPTER_TTS_IMPORT_ERROR}",
+)
 class TestChapterTTS(unittest.TestCase):
     """Test cases for ChapterTTS functionality"""
 

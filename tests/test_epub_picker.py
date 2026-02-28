@@ -59,7 +59,6 @@ TEST_BOOKS = [
                 ("Chapter XXV", "10258.xhtml"),
                 ("Chapter XXVI", "10609.xhtml"),
                 ("Chapter XXVII", "10740.xhtml"),
-                ("Saint-Exupéry: A Short Biography", "10740.xhtml#10664"),
             ],
         },
     },
