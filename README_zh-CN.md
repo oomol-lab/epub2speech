@@ -19,6 +19,7 @@
 - **🔄 自动检测**: 自动检测已配置的提供商
 - **🌍 多语言支持**: 支持多种语言和语音
 - **📱 M4B 输出**: 生成带章节导航的标准 M4B 有声读物格式
+- **🧹 噪点清洗**: 自动移除常见阅读噪点（目录条目、装饰分隔线、孤立页码）
 - **🔧 CLI 界面**: 易于使用的命令行工具，带进度跟踪
 
 ## 基本用法
@@ -115,6 +116,12 @@ epub2speech input.epub output.m4b --voice ja-JP-NanamiNeural --quiet
 
 # 设置每个 TTS 分段的最大字符数（默认：500）
 epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --max-tts-segment-chars 800
+
+# 使用更保守的清洗策略（尽量保留短文本）
+epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --cleaning-strictness conservative
+
+# 在工作目录输出每章清洗报告
+epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --dump-cleaning-report
 ```
 
 ### Azure TTS 配置
@@ -178,6 +185,8 @@ result = convert_epub_to_m4b(
     voice="zh-CN-XiaoxiaoNeural",
     max_chapters=None,  # 可选：限制章节数
     max_tts_segment_chars=500,  # 可选：每个 TTS 分段的最大字符数（默认：500）
+    cleaning_strictness="balanced",  # 可选：conservative / balanced / aggressive
+    dump_cleaning_report=False,  # 可选：每章输出 cleaning_report.json
     progress_callback=on_progress  # 可选
 )
 

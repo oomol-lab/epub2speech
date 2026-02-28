@@ -98,11 +98,15 @@ def compare_text_head_tail(extracted_text, expected_head, expected_tail, max_cha
     if not extracted_text:
         return False, False, "", ""
 
-    head_actual = extracted_text[:max_chars] if len(extracted_text) > max_chars else extracted_text
-    tail_actual = extracted_text[-max_chars:] if len(extracted_text) > max_chars else extracted_text
+    normalized_extracted = " ".join(extracted_text.split())
+    normalized_expected_head = " ".join(expected_head.split())
+    normalized_expected_tail = " ".join(expected_tail.split())
 
-    head_match = expected_head.lower() in head_actual.lower()
-    tail_match = expected_tail.lower() in tail_actual.lower()
+    head_actual = normalized_extracted[:max_chars] if len(normalized_extracted) > max_chars else normalized_extracted
+    tail_actual = normalized_extracted[-max_chars:] if len(normalized_extracted) > max_chars else normalized_extracted
+
+    head_match = normalized_expected_head.lower() in head_actual.lower()
+    tail_match = normalized_expected_tail.lower() in tail_actual.lower()
 
     return head_match, tail_match, head_actual, tail_actual
 

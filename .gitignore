@@ -217,11 +217,17 @@ tests/tts_config.json
 # Test output files
 tests/dist/
 tests/temp/
+reports/cleaning/
+*.cleaned.txt
+*.cleaning_report.json
 
 # Test Audio Files
 *.wav
 *.mp3
 *.m4a
+
+# Local manual test books in project root
+/*.epub
 
 # Temporary Files
 temp/

@@ -10,6 +10,7 @@ from spacy.lang.xx import MultiLanguage
 from spacy.language import Language
 from spacy.tokens import Span
 
+from .text_normalizer import TEXT_NORMALIZATION_LEVELS, normalize_text_for_tts
 from .tts.protocol import TextToSpeechProtocol
 
 SEGMENT_LEVEL = 1
@@ -22,9 +23,13 @@ class ChapterTTS:
         tts_protocol: TextToSpeechProtocol,
         max_segment_length: int = 500,
         language_model: str | None = None,
+        text_normalization_level: str = "basic",
     ):
+        if text_normalization_level not in TEXT_NORMALIZATION_LEVELS:
+            raise ValueError(f"Unsupported text normalization level: {text_normalization_level}")
         self._tts_protocol = tts_protocol
         self._max_segment_length = max_segment_length
+        self._text_normalization_level = text_normalization_level
         self._nlp = self._load_language_model(language_model)
 
     def _load_language_model(self, language_model: Optional[str]) -> Language:
@@ -89,6 +94,7 @@ class ChapterTTS:
             sf.write(output_path, final_audio, first_sample_rate)
 
     def split_text_into_segments(self, text: str) -> Generator[str, None, None]:
+        text = normalize_text_for_tts(text, level=self._text_normalization_level)
         text = text.strip()
         if not text:
             return
