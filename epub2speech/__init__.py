@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from . import tts
+
+if TYPE_CHECKING:
+    from .convertor import ConversionProgress, convert_epub_to_m4b
 
 __all__ = [
     "tts",
