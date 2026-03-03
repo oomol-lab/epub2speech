@@ -27,11 +27,31 @@ class DoubaoTextToSpeech(TextToSpeechProtocol):
         poll_interval: float = 2.0,
         submit_timeout: float = 1800.0,
         poll_timeout: float = 30.0,
+        download_connect_timeout: float = 20.0,
+        download_read_timeout: float = 300.0,
+        download_max_retries: int = 3,
+        download_retry_delay: float = 2.0,
     ):
         if not access_token:
             raise ValueError("access_token is required and cannot be None or empty")
         if not base_url:
             raise ValueError("base_url is required and cannot be None or empty")
+        if max_retries < 1:
+            raise ValueError("max_retries must be at least 1")
+        if poll_interval <= 0:
+            raise ValueError("poll_interval must be > 0")
+        if submit_timeout <= 0:
+            raise ValueError("submit_timeout must be > 0")
+        if poll_timeout <= 0:
+            raise ValueError("poll_timeout must be > 0")
+        if download_connect_timeout <= 0:
+            raise ValueError("download_connect_timeout must be > 0")
+        if download_read_timeout <= 0:
+            raise ValueError("download_read_timeout must be > 0")
+        if download_max_retries < 1:
+            raise ValueError("download_max_retries must be at least 1")
+        if download_retry_delay < 0:
+            raise ValueError("download_retry_delay must be >= 0")
 
         self.access_token = access_token
         self.base_url = base_url.rstrip("/")
@@ -39,6 +59,10 @@ class DoubaoTextToSpeech(TextToSpeechProtocol):
         self.poll_interval = poll_interval
         self.submit_timeout = submit_timeout
         self.poll_timeout = poll_timeout
+        self.download_connect_timeout = download_connect_timeout
+        self.download_read_timeout = download_read_timeout
+        self.download_max_retries = download_max_retries
+        self.download_retry_delay = download_retry_delay
 
         self._setup()
 
@@ -188,25 +212,66 @@ class DoubaoTextToSpeech(TextToSpeechProtocol):
 
     def _download_audio(self, audio_url: str, output_path: Path) -> None:
         """Download audio file from URL to output_path."""
-        try:
-            response = requests.get(audio_url, timeout=300.0, stream=True)
-            response.raise_for_status()
+        temp_output_path = output_path.with_suffix(f"{output_path.suffix}.part")
+        last_timeout_error: requests.exceptions.Timeout | None = None
+        last_network_error: requests.exceptions.RequestException | None = None
 
-            # Write to file in chunks
-            with open(output_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
+        for attempt in range(1, self.download_max_retries + 1):
+            try:
+                with requests.get(
+                    audio_url,
+                    timeout=(self.download_connect_timeout, self.download_read_timeout),
+                    stream=True,
+                ) as response:
+                    response.raise_for_status()
 
-        except requests.exceptions.Timeout as e:
-            raise TimeoutError("Download timeout after 300 seconds") from e
-        except requests.exceptions.HTTPError as e:
-            # HTTPError always has a response attribute
-            resp = e.response
-            if resp is not None:
-                raise RuntimeError(f"Download failed with HTTP Error {resp.status_code}: {resp.text}") from e
-            raise RuntimeError(f"Download failed with HTTP Error: {e}") from e
-        except requests.exceptions.RequestException as e:
-            raise ConnectionError(f"Download failed: {e}") from e
-        except OSError as e:
-            raise RuntimeError(f"Failed to write audio file to {output_path}: {e}") from e
+                    with open(temp_output_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+
+                temp_output_path.replace(output_path)
+                return
+
+            except requests.exceptions.Timeout as e:
+                temp_output_path.unlink(missing_ok=True)
+                last_timeout_error = e
+                if attempt < self.download_max_retries:
+                    time.sleep(self.download_retry_delay * attempt)
+                    continue
+
+            except requests.exceptions.HTTPError as e:
+                temp_output_path.unlink(missing_ok=True)
+                resp = e.response
+                status_code = resp.status_code if resp is not None else None
+                retryable_status_codes = {408, 425, 429, 500, 502, 503, 504}
+                if status_code in retryable_status_codes and attempt < self.download_max_retries:
+                    time.sleep(self.download_retry_delay * attempt)
+                    continue
+
+                if resp is not None:
+                    raise RuntimeError(f"Download failed with HTTP Error {resp.status_code}: {resp.text}") from e
+                raise RuntimeError(f"Download failed with HTTP Error: {e}") from e
+
+            except requests.exceptions.RequestException as e:
+                temp_output_path.unlink(missing_ok=True)
+                last_network_error = e
+                if attempt < self.download_max_retries:
+                    time.sleep(self.download_retry_delay * attempt)
+                    continue
+                raise ConnectionError(f"Download failed after {self.download_max_retries} attempts: {e}") from e
+
+            except OSError as e:
+                temp_output_path.unlink(missing_ok=True)
+                raise RuntimeError(f"Failed to write audio file to {output_path}: {e}") from e
+
+        if last_timeout_error is not None:
+            raise TimeoutError(
+                f"Download timeout after {self.download_max_retries} attempts "
+                f"(connect_timeout={self.download_connect_timeout}s, read_timeout={self.download_read_timeout}s)"
+            ) from last_timeout_error
+
+        if last_network_error is not None:
+            raise ConnectionError(f"Download failed after {self.download_max_retries} attempts") from last_network_error
+
+        raise RuntimeError("Download failed due to an unknown error")
