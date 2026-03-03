@@ -136,7 +136,7 @@ class M4BGenerator:
         work_dir.mkdir(parents=True, exist_ok=True)
 
         file_list_path = work_dir / "concat_list.txt"
-        concat_audio_path = work_dir / "concatenated.tmp.mp4"
+        concat_audio_path = work_dir / "concatenated.tmp.wav"
 
         with open(file_list_path, "w", encoding="utf-8") as f:
             for chapter in chapters:
@@ -152,8 +152,9 @@ class M4BGenerator:
             "0",
             "-i",
             str(file_list_path),
-            "-c",
-            "copy",
+            "-vn",
+            "-c:a",
+            "pcm_s16le",
             str(concat_audio_path),
         ]
         self._run_command(concat_cmd, "Failed to concatenate audio files")
