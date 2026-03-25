@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -149,8 +150,8 @@ class M4BGenerator:
             for chapter in chapters:
                 # Use paths relative to concat_list.txt so remote ffmpeg wrappers do not
                 # need to rewrite paths embedded inside the file content.
-                rel_path = chapter.audio_file.resolve().relative_to(work_dir.resolve())
-                f.write(f"file '{rel_path.as_posix()}'\n")
+                rel_path = os.path.relpath(chapter.audio_file.resolve(), start=work_dir.resolve())
+                f.write(f"file '{Path(rel_path).as_posix()}'\n")
 
         concat_cmd = [
             self.ffmpeg_path,
