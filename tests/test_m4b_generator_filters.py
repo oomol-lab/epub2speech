@@ -44,6 +44,7 @@ class DummyM4BGenerator(M4BGenerator):
     def _run_command(self, args, error_message):
         _ = error_message
         self.last_command = list(args)
+        Path(args[-1]).write_bytes(b"dummy")
         return _DummyResult()
 
 

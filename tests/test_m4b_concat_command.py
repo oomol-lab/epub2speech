@@ -32,6 +32,7 @@ class _ConcatCommandCaptureGenerator(M4BGenerator):
     def _run_command(self, args, error_message):
         _ = error_message
         self.commands.append(list(args))
+        Path(args[-1]).write_bytes(b"dummy")
         return _DummyResult()
 
 
