@@ -76,7 +76,14 @@ class M4BGenerator:
         if audio_filter_chain:
             ffmpeg_cmd.extend(["-af", audio_filter_chain])
         ffmpeg_cmd.extend(["-map_metadata", "1", "-f", "mp4", str(output_path)])
-        self._run_command(ffmpeg_cmd, "FFmpeg failed to create M4B")
+        result = self._run_command(ffmpeg_cmd, "FFmpeg failed to create M4B")
+        if not output_path.exists():
+            stderr_content = result.stderr.strip() if result.stderr else "No stderr output"
+            stdout_content = result.stdout.strip() if result.stdout else "No stdout output"
+            raise RuntimeError(
+                "FFmpeg reported success but did not create the output file. "
+                f"Expected: {output_path}. stdout: {stdout_content}. stderr: {stderr_content}"
+            )
         return output_path
 
     def _create_chapter_metadata(
@@ -140,8 +147,10 @@ class M4BGenerator:
 
         with open(file_list_path, "w", encoding="utf-8") as f:
             for chapter in chapters:
-                abs_path = chapter.audio_file.resolve()
-                f.write(f"file '{abs_path}'\n")
+                # Use paths relative to concat_list.txt so remote ffmpeg wrappers do not
+                # need to rewrite paths embedded inside the file content.
+                rel_path = chapter.audio_file.resolve().relative_to(work_dir.resolve())
+                f.write(f"file '{rel_path.as_posix()}'\n")
 
         concat_cmd = [
             self.ffmpeg_path,
@@ -157,7 +166,14 @@ class M4BGenerator:
             "pcm_s16le",
             str(concat_audio_path),
         ]
-        self._run_command(concat_cmd, "Failed to concatenate audio files")
+        result = self._run_command(concat_cmd, "Failed to concatenate audio files")
+        if not concat_audio_path.exists():
+            stderr_content = result.stderr.strip() if result.stderr else "No stderr output"
+            stdout_content = result.stdout.strip() if result.stdout else "No stdout output"
+            raise RuntimeError(
+                "FFmpeg reported success but did not create the concatenated audio file. "
+                f"Expected: {concat_audio_path}. stdout: {stdout_content}. stderr: {stderr_content}"
+            )
         return concat_audio_path
 
     def _run_command(self, args: list[str], error_message: str) -> subprocess.CompletedProcess:
