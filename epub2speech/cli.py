@@ -192,6 +192,12 @@ Examples:
 
     parser.add_argument("--max-chapters", type=int, help="Maximum number of chapters to convert (optional)")
     parser.add_argument(
+        "--max-tts-segment-chars",
+        type=int,
+        default=500,
+        help="Maximum characters per TTS segment (default: 500)",
+    )
+    parser.add_argument(
         "--cleaning-strictness",
         type=str,
         choices=list(TEXT_CLEANING_STRICTNESS_LEVELS),
@@ -305,6 +311,7 @@ Examples:
                 print(f"Using voice: {args.voice}")
             if args.max_chapters:
                 print(f"Maximum chapters: {args.max_chapters}")
+            print(f"Max TTS segment chars: {args.max_tts_segment_chars}")
             print(f"Cleaning strictness: {args.cleaning_strictness}")
             print(f"Text normalization: {args.text_normalization_level}")
             if args.disable_loudnorm:
@@ -324,6 +331,7 @@ Examples:
                 tts_protocol=tts_provider,
                 voice=args.voice,
                 max_chapters=args.max_chapters,
+                max_tts_segment_chars=args.max_tts_segment_chars,
                 cleaning_strictness=args.cleaning_strictness,
                 text_normalization_level=args.text_normalization_level,
                 dump_cleaning_report=args.dump_cleaning_report,

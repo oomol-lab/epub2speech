@@ -167,6 +167,25 @@ class TestChapterTTS(unittest.TestCase):
             if temp_dir.exists():
                 shutil.rmtree(temp_dir)
 
+    def test_hard_character_limit_for_long_chinese_text(self):
+        class MockTTSProtocol(TextToSpeechProtocol):
+            def convert_text_to_audio(self, text: str, output_path: Path, voice: str | None = None) -> None:
+                _ = text, output_path, voice
+
+            def get_available_voices(self) -> list[str]:
+                return ["mock-voice"]
+
+            def validate_config(self) -> bool:
+                return True
+
+        chapter_tts = ChapterTTS(tts_protocol=MockTTSProtocol(), max_segment_length=600)
+        text = "春" * 1500
+
+        segments = list(chapter_tts.split_text_into_segments(text))
+
+        self.assertEqual([len(segment) for segment in segments], [600, 600, 300])
+        self.assertTrue(all(len(segment) <= 600 for segment in segments))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

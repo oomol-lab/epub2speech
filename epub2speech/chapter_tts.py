@@ -25,6 +25,8 @@ class ChapterTTS:
         language_model: str | None = None,
         text_normalization_level: str = "basic",
     ):
+        if max_segment_length < 1:
+            raise ValueError("max_segment_length must be at least 1")
         if text_normalization_level not in TEXT_NORMALIZATION_LEVELS:
             raise ValueError(f"Unsupported text normalization level: {text_normalization_level}")
         self._tts_protocol = tts_protocol
@@ -159,11 +161,10 @@ class ChapterTTS:
             yield fragment_resource
 
     def _split_by_resource_segmentation(self, resources: List[Resource]) -> Generator[str, None, None]:
-        max_byte_length = self._max_segment_length * 3
         groups = list(
             split(
                 iter(resources),
-                max_segment_count=max_byte_length,
+                max_segment_count=self._max_segment_length,
                 border_incision=1,
                 gap_rate=0.0,
                 tail_rate=0.0,
@@ -180,4 +181,43 @@ class ChapterTTS:
 
             combined_text = "".join(segment_chars).strip()
             if combined_text:
-                yield combined_text
+                yield from self._enforce_max_segment_length(combined_text)
+
+    def _enforce_max_segment_length(self, text: str) -> Generator[str, None, None]:
+        remaining = text.strip()
+        while remaining:
+            if len(remaining) <= self._max_segment_length:
+                yield remaining
+                return
+
+            split_at = self._find_split_index(remaining)
+            segment = remaining[:split_at].strip()
+            if not segment:
+                split_at = self._max_segment_length
+                segment = remaining[:split_at]
+
+            trailing = remaining[split_at:].lstrip()
+            if (
+                trailing
+                and self._is_punctuation_only(trailing)
+                and len(segment) + len(trailing) <= self._max_segment_length
+            ):
+                yield segment + trailing
+                return
+
+            yield segment
+            remaining = remaining[split_at:].lstrip()
+
+    def _find_split_index(self, text: str) -> int:
+        max_index = min(len(text), self._max_segment_length)
+        preferred_break_chars = "。！？!?；;：:\n，,、)]】》」』 "
+
+        for index in range(max_index - 1, -1, -1):
+            if text[index] in preferred_break_chars:
+                return index + 1
+
+        return max_index
+
+    def _is_punctuation_only(self, text: str) -> bool:
+        punctuation_chars = set("。！？!?；;：:\n，,、)]】》」』 ")
+        return all(char in punctuation_chars for char in text)
