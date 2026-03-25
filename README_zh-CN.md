@@ -15,7 +15,7 @@
 ## 功能特点
 
 - **📚 EPUB 支持**: 兼容 EPUB 2 和 EPUB 3 格式
-- **🎙️ 多 TTS 提供商**: 支持 Azure、豆包和 Qwen TTS 服务
+- **🎙️ 多 TTS 提供商**: 支持 Azure、豆包和千问 TTS 服务
 - **🔄 自动检测**: 自动检测已配置的提供商
 - **🌍 多语言支持**: 支持多种语言和语音
 - **📱 M4B 输出**: 生成带章节导航的标准 M4B 有声读物格式
@@ -34,7 +34,7 @@ epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural
 
 - Python 3.11 或更高版本
 - FFmpeg（用于音频处理）
-- TTS 提供商凭据（Azure、豆包或 Qwen）
+- TTS 提供商凭据（Azure、豆包或千问）
 
 ### 安装依赖
 
@@ -88,7 +88,7 @@ epub2speech input.epub output.m4b --voice zh_male_lengkugege_emo_v2_mars_bigtts
 **可用语音：** https://www.volcengine.com/docs/6561/1257544?lang=zh
 _（在豆包 TTS 文档中查找语音 ID）_
 
-### 选项 3：使用 Qwen TTS
+### 选项 3：使用千问 TTS
 
 设置环境变量并运行：
 
@@ -103,7 +103,8 @@ epub2speech input.epub output.m4b --provider qwen --voice Cherry
 - 使用您的 fusion-api 访问令牌
 - `QWEN_BASE_URL` 指向 `action/generate` 上一级服务地址
 
-**可用语音：** 参考您部署的 Qwen TTS 服务配置
+**可用语音：** https://help.aliyun.com/zh/model-studio/qwen-tts#bac280ddf5a1u
+_（在千问 TTS 文档中查找语音 ID）_
 
 ### 提供商自动检测
 
@@ -116,7 +117,7 @@ epub2speech input.epub output.m4b --provider azure --voice zh-CN-XiaoxiaoNeural
 # 显式使用豆包
 epub2speech input.epub output.m4b --provider doubao --voice zh_male_lengkugege_emo_v2_mars_bigtts
 
-# 显式使用 Qwen
+# 显式使用千问
 epub2speech input.epub output.m4b --provider qwen --voice Cherry
 ```
 
@@ -166,7 +167,7 @@ epub2speech input.epub output.m4b \
   --doubao-url YOUR_BASE_URL
 ```
 
-### Qwen TTS 配置
+### 千问 TTS 配置
 
 通过命令行参数传递凭据：
 
@@ -197,7 +198,7 @@ from pathlib import Path
 from epub2speech import convert_epub_to_m4b, ConversionProgress
 from epub2speech.tts.azure_provider import AzureTextToSpeech
 # 或使用：from epub2speech.tts.doubao_provider import DoubaoTextToSpeech
-# 或使用：from epub2speech.tts.qwen_provider import QwenTextToSpeech
+# 或使用千问：from epub2speech.tts.qwen_provider import QwenTextToSpeech
 
 # 初始化 TTS 提供商
 tts = AzureTextToSpeech(
