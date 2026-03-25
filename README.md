@@ -15,7 +15,7 @@ Convert EPUB e-books into high-quality audiobooks using multiple Text-to-Speech 
 ## Features
 
 - **📚 EPUB Support**: Compatible with EPUB 2 and EPUB 3 formats
-- **🎙️ Multiple TTS Providers**: Supports Azure and Doubao TTS services
+- **🎙️ Multiple TTS Providers**: Supports Azure, Doubao, and Qwen TTS services
 - **🔄 Auto-Detection**: Automatically detects configured provider
 - **🌍 Multi-Language Support**: Supports various languages and voices
 - **📱 M4B Output**: Generates standard M4B audiobook format with chapter navigation
@@ -34,7 +34,7 @@ epub2speech input.epub output.m4b --voice zh-CN-XiaoxiaoNeural
 
 - Python 3.11 or higher
 - FFmpeg (for audio processing)
-- TTS provider credentials (Azure or Doubao)
+- TTS provider credentials (Azure, Doubao, or Qwen)
 
 ### Install Dependencies
 
@@ -88,6 +88,23 @@ epub2speech input.epub output.m4b --voice zh_male_lengkugege_emo_v2_mars_bigtts
 **Available voices:** https://www.volcengine.com/docs/6561/1257544
 _(Find voice IDs in the Doubao TTS documentation)_
 
+### Option 3: Using Qwen TTS
+
+Set environment variables and run:
+
+```bash
+export QWEN_ACCESS_TOKEN="your-access-token"
+export QWEN_BASE_URL="your-api-base-url"
+
+epub2speech input.epub output.m4b --provider qwen --voice Cherry
+```
+
+**Where to get credentials:**
+- Get your Qwen access token and API base URL from Alibaba console
+
+**Available voices:** https://help.aliyun.com/zh/model-studio/qwen-tts#bac280ddf5a1u
+_(Find voice IDs in the Qwen TTS documentation)_
+
 ### Provider Auto-Detection
 
 If you have configured only one provider, it will be automatically detected and used. If multiple providers are configured, specify which one to use:
@@ -98,6 +115,9 @@ epub2speech input.epub output.m4b --provider azure --voice zh-CN-XiaoxiaoNeural
 
 # Explicitly use Doubao
 epub2speech input.epub output.m4b --provider doubao --voice zh_male_lengkugege_emo_v2_mars_bigtts
+
+# Explicitly use Qwen
+epub2speech input.epub output.m4b --provider qwen --voice Cherry
 ```
 
 ## Advanced Options
@@ -146,6 +166,18 @@ epub2speech input.epub output.m4b \
   --doubao-url YOUR_BASE_URL
 ```
 
+### Qwen TTS Configuration
+
+Pass credentials via command-line arguments:
+
+```bash
+epub2speech input.epub output.m4b \
+  --provider qwen \
+  --voice Cherry \
+  --qwen-token YOUR_TOKEN \
+  --qwen-url YOUR_BASE_URL
+```
+
 ## How It Works
 
 1. **EPUB Parsing**: Extracts text content and metadata from EPUB files
@@ -165,6 +197,7 @@ from pathlib import Path
 from epub2speech import convert_epub_to_m4b, ConversionProgress
 from epub2speech.tts.azure_provider import AzureTextToSpeech
 # Or use: from epub2speech.tts.doubao_provider import DoubaoTextToSpeech
+# Or use: from epub2speech.tts.qwen_provider import QwenTextToSpeech
 
 # Initialize TTS provider
 tts = AzureTextToSpeech(

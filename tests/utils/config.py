@@ -42,6 +42,11 @@ _PROVIDER_CONFIGS: dict[str, _ProviderConfig] = {
         env_vars=["DOUBAO_ACCESS_TOKEN", "DOUBAO_BASE_URL"],
         display_name="Doubao TTS",
     ),
+    "qwen": _ProviderConfig(
+        args=["qwen_token", "qwen_url"],
+        env_vars=["QWEN_ACCESS_TOKEN", "QWEN_BASE_URL"],
+        display_name="Qwen TTS",
+    ),
 }
 
 
