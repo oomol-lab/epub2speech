@@ -33,6 +33,11 @@ _PROVIDER_CONFIGS: dict[str, _ProviderConfig] = {
         env_vars=["DOUBAO_ACCESS_TOKEN", "DOUBAO_BASE_URL"],
         display_name="Doubao TTS",
     ),
+    "qwen": _ProviderConfig(
+        args=["qwen_token", "qwen_url"],
+        env_vars=["QWEN_ACCESS_TOKEN", "QWEN_BASE_URL"],
+        display_name="Qwen TTS",
+    ),
 }
 
 
@@ -52,6 +57,10 @@ def _create_provider(provider_name: str, values: dict[str, Any]) -> tuple[str, T
         from .tts.doubao_provider import DoubaoTextToSpeech
 
         return provider_name, DoubaoTextToSpeech(access_token=values["doubao_token"], base_url=values["doubao_url"])
+    elif provider_name == "qwen":
+        from .tts.qwen_provider import QwenTextToSpeech
+
+        return provider_name, QwenTextToSpeech(access_token=values["qwen_token"], base_url=values["qwen_url"])
     else:
         raise ValueError(f"Unknown provider: {provider_name}")
 
@@ -160,6 +169,9 @@ Examples:
   # Using Doubao explicitly
   %(prog)s input.epub output.m4b --provider doubao --voice zh_male_lengkugege_emo_v2_mars_bigtts
 
+  # Using Qwen explicitly
+  %(prog)s input.epub output.m4b --provider qwen --voice Cherry
+
   # Limit chapters
   %(prog)s input.epub output.m4b --voice zh-CN-XiaoxiaoNeural --max-chapters 5
         """,
@@ -237,6 +249,21 @@ Examples:
         type=str,
         default=os.environ.get("DOUBAO_BASE_URL"),
         help="Doubao API base URL (or set DOUBAO_BASE_URL env var)",
+    )
+
+    # Qwen TTS options
+    qwen_group = parser.add_argument_group("Qwen TTS options")
+    qwen_group.add_argument(
+        "--qwen-token",
+        type=str,
+        default=os.environ.get("QWEN_ACCESS_TOKEN"),
+        help="Qwen access token (or set QWEN_ACCESS_TOKEN env var)",
+    )
+    qwen_group.add_argument(
+        "--qwen-url",
+        type=str,
+        default=os.environ.get("QWEN_BASE_URL"),
+        help="Qwen API base URL (or set QWEN_BASE_URL env var)",
     )
 
     parser.add_argument("--quiet", action="store_true", help="Quiet mode, do not show progress information")

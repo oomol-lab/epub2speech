@@ -19,6 +19,20 @@ def create_tts_provider(provider_name: str, config: dict):
         from epub2speech.tts.doubao_provider import DoubaoTextToSpeech
 
         return DoubaoTextToSpeech(access_token=config["doubao_token"], base_url=config["doubao_url"])
+    elif provider_name == "qwen":
+        from epub2speech.tts.qwen_provider import QwenTextToSpeech
+
+        return QwenTextToSpeech(
+            access_token=config["qwen_token"],
+            base_url=config["qwen_url"],
+            model=os.getenv("QWEN_MODEL"),
+            voice=os.getenv("QWEN_VOICE"),
+            language_type=os.getenv("QWEN_LANGUAGE_TYPE"),
+            instructions=os.getenv("QWEN_INSTRUCTIONS"),
+            optimize_instructions=(
+                True if os.getenv("QWEN_OPTIMIZE_INSTRUCTIONS", "").strip().lower() in {"1", "true", "yes", "on"} else None
+            ),
+        )
     else:
         raise ValueError(f"Unknown provider: {provider_name}")
 
@@ -42,6 +56,11 @@ def get_test_cases_for_provider(provider_name: str):
                 "text": "This is an English voice test",
                 "filename": "english_test",
             },
+        ]
+    elif provider_name == "qwen":
+        return [
+            {"voice": "Cherry", "text": "这是一个中文语音测试", "filename": "chinese_test"},
+            {"voice": "Serena", "text": "This is an English voice test", "filename": "english_test"},
         ]
     else:
         return []
@@ -99,6 +118,10 @@ class TestTTSIntegration(unittest.TestCase):
     def test_doubao_voice_functionality(self):
         """Test Doubao TTS voice functionality"""
         self._test_provider_voice_functionality("doubao")
+
+    def test_qwen_voice_functionality(self):
+        """Test Qwen TTS voice functionality"""
+        self._test_provider_voice_functionality("qwen")
 
 
 if __name__ == "__main__":
