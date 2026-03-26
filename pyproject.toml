@@ -1,6 +1,6 @@
 [project]
 name = "epub2speech"
-version = "0.0.9"
+version = "0.0.10"
 description = "Convert EPUB e-books into high-quality audiobooks using multiple Text-to-Speech providers (Azure, Doubao, Qwen)"
 readme = "README.md"
 license = {text = "MIT"}
